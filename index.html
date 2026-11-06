@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Jazz24 — Live Player</title>
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Jazz24">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    background:#0a0a0a;color:#fff;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .bg{position:fixed;inset:0;z-index:-1}
+  .bg img{width:100%;height:100%;object-fit:cover;filter:blur(44px) brightness(0.32) saturate(1.25);transform:scale(1.12);transition:all 1s ease}
+  .bg::after{content:'';position:absolute;inset:0;background:radial-gradient(60% 50% at 50% 25%, rgba(0,0,0,0.15), rgba(0,0,0,0.88))}
+
+  .app{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    height:100dvh;
+    padding:16px;
+    padding-top:max(16px, env(safe-area-inset-top));
+    padding-bottom:max(16px, env(safe-area-inset-bottom));
+  }
+
+  /* ESTRUTURA PADRÃO (Retrato) */
+  .card{
+    width:100%;
+    max-width:520px;
+    background:rgba(22,22,22,0.62);
+    backdrop-filter:blur(28px) saturate(1.25);
+    -webkit-backdrop-filter:blur(28px) saturate(1.25);
+    border:1px solid rgba(255,255,255,0.11);
+    border-radius:24px;
+    padding:18px;
+    box-shadow:0 24px 70px rgba(0,0,0,0.65);
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    max-height: 100%;
+    overflow-y: auto; /* Permite rolar no retrato se a tela for muito baixa */
+  }
+
+  /* --- CONTAINER DO ÁUDIO E BOTÕES --- */
+  .main-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .art{
+    position:relative;
+    aspect-ratio:1;
+    border-radius:18px;
+    overflow:hidden;
+    background:#151515;
+    flex-shrink: 0;
+  }
+  .art img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .8s cubic-bezier(.2,.8,.2,1)}
+  .art.playing img{transform:scale(1.05)}
+  .vinyl{
+    position:absolute;inset:0;border-radius:50%;margin:7%;
+    background:radial-gradient(circle at 50% 50%, #222 0 8%, #111 9% 15%, #1c1c1c 16% 100%);
+    opacity:0;transition:opacity .6s;pointer-events:none;mix-blend-mode:overlay;
+  }
+  .art.playing .vinyl{opacity:.38;animation:spin 9s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .live{
+    position:absolute;top:12px;left:12px;
+    background:rgba(0,0,0,0.45);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    padding:10.5px 19.5px; 
+    border-radius:999px;
+    font-size:16.5px; 
+    letter-spacing:.14em;font-weight:800;
+    display:flex;gap:10.5px;align-items:center;
+    border:1px solid rgba(255,255,255,0.16);
+    transition: color 0.3s;
+  }
+  .dot{
+    width:12px;height:12px; 
+    background:#ff2a2a; 
+    border-radius:50%;
+    box-shadow:0 0 18px #ff2a2a;
+    transition: all 0.3s;
+  }
+  .art.playing .dot {
+    background:#22c55e;
+    box-shadow:0 0 18px #22c55e;
+    animation:pulse 1.5s infinite;
+  }
+  .art.playing .live { color:#bbf7d0; }
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(.88)}}
+
+  .fs-btn{
+    position:absolute;top:12px;right:12px;
+    background:rgba(0,0,0,0.45);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,0.16);
+    color:#fff;border-radius:50%;width:40px;height:40px;
+    display:grid;place-items:center;cursor:pointer;
+    transition:background 0.2s;z-index:10;
+  }
+  .fs-btn:hover{background:rgba(0,0,0,0.7)}
+  .fs-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+  .meta{ display: flex; flex-direction: column; }
+  .station{font-size:12px;letter-spacing:.05em;opacity:.65;font-weight:600;margin-bottom:6px;line-height:1.3;}
+  .title{
+    font-family:'Fraunces',serif;
+    font-size:clamp(20px, 5vw, 28px);
+    line-height:1.1;letter-spacing:-.02em;
+    overflow-wrap:break-word;word-break:break-word;
+  }
+  .artist{font-size:clamp(13px, 3.5vw, 15px);opacity:.82;margin-top:4px;word-break:break-word}
+
+  canvas{width:100%;height:40px;display:block}
+
+  .controls{
+    margin-top: 4px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:24px;
+  }
+  
+  .nav-btn{
+    background:none;border:none;color:#fff;cursor:pointer;
+    opacity:.75;transition:opacity 0.2s, transform 0.1s;
+    display:grid;place-items:center;
+    width:54px;height:54px;flex-shrink:0;
+  }
+  .nav-btn:hover{opacity:1}
+  .nav-btn:active{transform:scale(0.9)}
+  .nav-btn svg{width:36px;height:36px}
+
+  .play{
+    width:90px;height:90px; 
+    border-radius:50%;background:#fff;color:#000;
+    border:none;display:grid;place-items:center;cursor:pointer;
+    transition:transform .15s;box-shadow:0 10px 28px rgba(255,255,255,0.28);
+    flex-shrink:0;
+  }
+  .play:active{transform:scale(.93)}
+  .play svg{width:36px;height:36px;margin-left:4px} 
+  .play.is-paused svg{margin-left:0}
+
+  .bottom-bar{
+    margin-top: 4px;
+    display:flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .vol{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    width: 100%;
+  }
+  .vol input{
+    flex:1; accent-color:#fff; height:4px; cursor:pointer; min-width:0;
+  }
+  .icon-btn{
+    background:none;border:none;color:#fff;
+    cursor:pointer;font-size:20px;opacity:.85;flex-shrink:0;
+  }
+
+  .info-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    width: 100%;
+  }
+  .badge-line{ display:flex; gap:6px; justify-content: flex-end; }
+  .badge{
+    font-size:10px;background:rgba(255,255,255,0.1);
+    padding:5px 8px;border-radius:999px;
+    display:inline-flex;max-width:100%;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .status{
+    font-size:11.5px;opacity:.7;line-height:1.4;word-break:break-word;
+    text-align:right; min-height:16px;
+  }
+
+  @media(max-width:420px){
+    .controls{gap:16px}
+    .play{width:76px;height:76px} 
+    .play svg{width:30px;height:30px}
+    .nav-btn{width:44px;height:44px}
+    .nav-btn svg{width:30px;height:30px}
+  }
+
+  /* =======================================================
+     MODO PAISAGEM (MOBILE HORIZONTAL) - LAYOUT EM 3 COLUNAS 
+     ======================================================= */
+  @media (orientation: landscape) and (max-height: 600px) {
+    .app { padding: 10px; }
+    
+    .card {
+      max-width: 1000px; /* Permite expandir na horizontal */
+      max-height: 95dvh;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: minmax(120px, 1fr) 1.6fr 120px;
+      grid-template-rows: 1fr auto;
+      grid-template-areas: 
+        "art meta controls"
+        "art vol controls";
+      gap: 16px 20px;
+      overflow: hidden;
+      border-radius: 20px;
+    }
+
+    /* 1. Arte do Álbum (Esquerda) */
+    .art {
+      grid-area: art;
+      height: 100%;
+      width: 100%;
+      aspect-ratio: unset;
+      max-height: 100%;
+    }
+    
+    /* Ajuste do badge e botão fullscreen para telas pequenas na horizontal */
+    .live { padding: 6px 12px; font-size: 11px; gap: 6px; top: 8px; left: 8px;}
+    .dot { width: 8px; height: 8px; box-shadow: 0 0 10px #ff2a2a; }
+    .art.playing .dot { box-shadow: 0 0 10px #22c55e; }
+    .fs-btn { width: 30px; height: 30px; top: 8px; right: 8px; }
+    .fs-btn svg { width: 16px; height: 16px; }
+
+    /* 2. Informações (Centro, em cima) */
+    .meta {
+      grid-area: meta;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      overflow: hidden;
+      min-height: 0; /* Permite encolher se necessário */
+    }
+    .station { font-size: 11px; margin-bottom: 2px; }
+    .title { font-size: clamp(18px, 3vh, 24px); line-height: 1.1; }
+    .artist { font-size: 13px; margin-top: 2px; }
+
+    /* O canvas original é escondido. O VU meter será movido para a direita */
+    canvas { display: none; }
+
+    /* 3. Volume (Centro, embaixo) */
+    .bottom-bar {
+      grid-area: vol;
+      margin-top: 0;
+      flex-direction: column; /* Empilha volume e badges no centro */
+      align-items: stretch;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+    .vol { width: 100%; }
+    .info-group { 
+      flex-direction: row; /* Coloca badges e status lado a lado */
+      align-items: center; 
+      justify-content: space-between; 
+      width: 100%;
+    }
+    .badge-line { justify-content: flex-start; }
+    .status { text-align: right; min-height: auto; font-size: 10px; margin-top: 0;}
+
+    /* 4. Controles (Direita - Botões empilhados) */
+    .controls {
+      grid-area: controls;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0;
+      gap: 10px;
+      height: 100%;
+    }
+    
+    /* Inverte a ordem visual no modo paisagem para ficar Avançar (cima), Play (meio), Voltar (baixo) */
+    #nextBtn { order: 1; }
+    .play { order: 2; width: 72px; height: 72px; }
+    .play svg { width: 30px; height: 30px; }
+    #prevBtn { order: 3; }
+    
+    .nav-btn { width: 44px; height: 44px; }
+    .nav-btn svg { width: 28px; height: 28px; }
+
+    /* 5. VU Meter (Posicionado na terceira coluna, abaixo dos controles)
+       Como o grid é limitado, vamos sobrepor o VU meter na terceira coluna
+       para que ele fique visível ao lado dos botões, preenchendo o espaço. */
+    canvas {
+      display: block;
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 60px; /* Largura do VU */
+      height: 80%; /* Altura do VU */
+      opacity: 0.8;
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    /* Para que o VU fique ao lado e não atrás dos botões, 
+       precisamos empurrar os botões para a esquerda e o VU para a direita */
+    .card {
+       grid-template-columns: minmax(120px, 1fr) 1.6fr 180px;
+    }
+    .controls {
+       position: relative;
+       z-index: 2;
+       padding-right: 70px; /* Abre espaço para o VU meter à direita */
+    }
+    canvas {
+       right: 14px;
+       width: 60px; /* VU width */
+    }
+  }
+</style>
+</head>
+<body>
+<div class="bg"><img id="bgImg" src="https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=1400&auto=format&fit=crop" alt=""></div>
+
+<div class="app" id="appContainer">
+  <div class="card">
+    
+    <div class="art" id="artWrap">
+      <img id="cover" src="https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=800&auto=format&fit=crop" alt="album art">
+      <div class="vinyl"></div>
+      
+      <div class="live"><span class="dot"></span> LIVE • <span id="liveName">Jazz24</span></div>
+      
+      <button class="fs-btn" id="fsBtn" aria-label="Tela Cheia">
+        <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+      </button>
+    </div>
+
+    <div class="meta">
+      <div class="station" id="stationDesc">Welcome to Jazz24 from Seattle and Tacoma, Washington.</div>
+      <div class="title" id="tTitle">Jazz24</div>
+      <div class="artist" id="tArtist">Seattle • jazz24.org</div>
+    </div>
+
+    <!-- No mobile horizontal, o canvas ficará flutuando na 3ª coluna -->
+    <canvas id="viz"></canvas>
+
+    <div class="controls">
+      <button class="nav-btn" id="prevBtn" aria-label="Rádio Anterior">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+      </button>
+
+      <button class="play" id="playBtn" aria-label="Play">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14l11-7-11-7z"/></svg>
+      </button>
+
+      <button class="nav-btn" id="nextBtn" aria-label="Próxima Rádio">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6v12z"/></svg>
+      </button>
+    </div>
+
+    <div class="bottom-bar">
+      <div class="vol">
+        <button class="icon-btn" id="muteBtn" title="Mudo" aria-label="Mudo">🔊</button>
+        <input type="range" id="vol" min="0" max="1" step="0.01" value="0.88" aria-label="Volume">
+      </div>
+      
+      <div class="info-group">
+        <div class="badge-line">
+          <span class="badge">HTTPS • MP3</span>
+          <span class="badge" id="artBadge">Arte: iTunes Search</span>
+        </div>
+        <div class="status" id="status"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<audio id="audio" crossorigin="anonymous" preload="none"></audio>
+
+<script type="module">
+const STATIONS = [
+  {
+    name: "Jazz24",
+    url: "https://knkx-live-a.edge.audiocdn.com/6285_256k",
+    desc: "Welcome to Jazz24 from Seattle and Tacoma, Washington.",
+    artist: "Seattle • jazz24.org"
+  },
+  {
+    name: "Ella Jazz Ballads",
+    url: "https://stream.ella-radio.de/ella-jazz-ballads",
+    desc: "Ella Radio. Made with ♥ for music lovers.",
+    artist: "Ella Radio • Jazz Ballads"
+  },
+  {
+    name: "Ella Modern Vocal Jazz",
+    url: "https://stream.ella-radio.de/ella-modern-vocal-jazz",
+    desc: "Ella Radio. Made with ♥ for music lovers.",
+    artist: "Ella Radio • Modern Vocal Jazz"
+  },
+  {
+    name: "Ella Coffee Jazz",
+    url: "https://stream.ella-radio.de/ella-coffee-jazz",
+    desc: "Ella Radio. Made with ♥ for music lovers.",
+    artist: "Ella Radio • Coffee Jazz"
+  }
+];
+
+let currentStationIndex = 0;
+let currentStation = STATIONS[currentStationIndex];
+
+const audio = document.getElementById('audio');
+const playBtn = document.getElementById('playBtn');
+const vol = document.getElementById('vol');
+const muteBtn = document.getElementById('muteBtn');
+const cover = document.getElementById('cover');
+const bgImg = document.getElementById('bgImg');
+const artWrap = document.getElementById('artWrap');
+const tTitle = document.getElementById('tTitle');
+const tArtist = document.getElementById('tArtist');
+const statusEl = document.getElementById('status');
+const artBadge = document.getElementById('artBadge');
+const stationDesc = document.getElementById('stationDesc');
+const liveName = document.getElementById('liveName');
+const canvas = document.getElementById('viz');
+const ctx = canvas.getContext('2d');
+const appContainer = document.getElementById('appContainer');
+const fsBtn = document.getElementById('fsBtn');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+let isPlaying = false;
+let analyser, dataArray, audioCtx, sourceNode;
+let lastQuery = "";
+let lastStreamTitle = "";
+let hasAutoFulscreenTriggered = false;
+
+function toggleFullScreen() {
+  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+    if (appContainer.requestFullscreen) {
+      appContainer.requestFullscreen().catch(()=>{});
+    } else if (appContainer.webkitRequestFullscreen) {
+      appContainer.webkitRequestFullscreen();
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+  }
+}
+
+fsBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleFullScreen();
+});
+
+const savedVol = localStorage.getItem('jazz24_vol');
+if(savedVol) vol.value = savedVol;
+audio.volume = parseFloat(vol.value);
+vol.addEventListener('input', () => {
+  audio.volume = parseFloat(vol.value);
+  localStorage.setItem('jazz24_vol', vol.value);
+  if(audio.muted && audio.volume > 0){ audio.muted = false; muteBtn.textContent = '🔊'; }
+});
+muteBtn.addEventListener('click', () => {
+  audio.muted = !audio.muted;
+  muteBtn.textContent = audio.muted ? '🔇' : '🔊';
+});
+
+function setupAnalyser(){
+  if(audioCtx) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 128;
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+    sourceNode = audioCtx.createMediaElementSource(audio);
+    sourceNode.connect(analyser);
+    analyser.connect(audioCtx.destination);
+  } catch(e) { console.log('Analyser error (CORS)', e); }
+}
+
+function draw(){
+  requestAnimationFrame(draw);
+  if (!canvas.offsetWidth) return;
+  
+  // O canvas é ajustado dependendo da orientação
+  const isLandscape = window.matchMedia("(orientation: landscape) and (max-height: 600px)").matches;
+  
+  const w = canvas.width = canvas.offsetWidth * 2;
+  const h = canvas.height = (isLandscape ? canvas.offsetHeight : 80);
+  
+  ctx.clearRect(0,0,w,h);
+  if(!analyser || !dataArray) return;
+  analyser.getByteFrequencyData(dataArray);
+  
+  if (isLandscape) {
+    // VU Meter Vertical no Modo Paisagem
+    const barH = h / dataArray.length * 1.9;
+    let y = h;
+    for(let i=0;i<dataArray.length;i++){
+      const v = dataArray[i]/255;
+      const bw = v * w * 0.92;
+      ctx.fillStyle = `rgba(255,255,255,${0.18 + v*0.82})`;
+      ctx.fillRect(0, y, bw, barH*0.78);
+      y -= barH;
+    }
+  } else {
+    // VU Meter Horizontal no Modo Retrato
+    const barW = w / dataArray.length * 1.9;
+    let x = 0;
+    for(let i=0;i<dataArray.length;i++){
+      const v = dataArray[i]/255;
+      const bh = v * h * 0.92;
+      ctx.fillStyle = `rgba(255,255,255,${0.18 + v*0.82})`;
+      ctx.fillRect(x, h - bh, barW*0.78, bh);
+      x += barW;
+    }
+  }
+}
+draw();
+
+function fetchArtwork(artist, title){
+  return new Promise((resolve) => {
+    const q = `${artist} ${title}`.trim();
+    if(!q || q === lastQuery){ resolve(null); return; }
+    lastQuery = q;
+    artBadge.textContent = `Buscando arte...`;
+
+    const callbackName = 'itunesCallback_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+
+    const timeout = setTimeout(() => {
+      cleanup();
+      artBadge.textContent = 'Arte: fallback';
+      resolve(null);
+    }, 8000);
+
+    function cleanup(){
+      clearTimeout(timeout);
+      try { delete window[callbackName]; } catch(e){ window[callbackName] = undefined; }
+      if(script && script.parentNode) script.parentNode.removeChild(script);
+    }
+
+    window[callbackName] = (data) => {
+      let art = null;
+      try {
+        if(data && data.results && data.results[0] && data.results[0].artworkUrl100){
+          art = data.results[0].artworkUrl100.replace('100x100bb','600x600bb');
+          cover.src = art;
+          bgImg.src = art;
+          artBadge.textContent = `Arte: ${data.results[0].artistName}`;
+        } else {
+          artBadge.textContent = 'Arte: fallback';
+        }
+      } catch(e){
+        artBadge.textContent = 'Arte: fallback';
+      }
+      cleanup();
+      resolve(art);
+    };
+
+    const script = document.createElement('script');
+    script.src = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=1&callback=${callbackName}`;
+    script.onerror = () => {
+      artBadge.textContent = 'Arte: fallback';
+      cleanup();
+      resolve(null);
+    };
+    document.body.appendChild(script);
+  });
+}
+
+function updateMediaSession(artist, title, art){
+  if('mediaSession' in navigator){
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: title || currentStation.name,
+        artist: artist || currentStation.artist,
+        album: currentStation.name,
+        artwork: [{src: art || cover.src, sizes:'600x600', type:'image/jpeg'}]
+      });
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+    } catch(e) {}
+  }
+}
+
+function parseStreamTitle(s){
+  if(!s) return {artist: currentStation.artist, title: currentStation.name};
+  const parts = s.split(' - ');
+  if(parts.length>=2){
+    return {artist: parts[0].trim(), title: parts.slice(1).join(' - ').trim()};
+  }
+  return {artist: currentStation.artist, title:s.trim()};
+}
+
+let metaAbort = null;
+let metaInterval = null;
+
+async function startMetadata(){
+  if (metaInterval) return;
+
+  const readIcy = async () => {
+    if (metaAbort) metaAbort.abort();
+    metaAbort = new AbortController();
+
+    try {
+      const res = await fetch(currentStation.url, {
+        headers: { 'Icy-MetaData': '1' },
+        signal: metaAbort.signal
+      });
+
+      const metaint = parseInt(res.headers.get('icy-metaint') || '0', 10);
+      if (!res.body || !metaint) {
+        statusEl.textContent = 'Metadata indisponível.';
+        return;
+      }
+
+      const reader = res.body.getReader();
+      let buffer = new Uint8Array(0);
+      let audioBytesSeen = 0;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        const merged = new Uint8Array(buffer.length + value.length);
+        merged.set(buffer); merged.set(value, buffer.length);
+        buffer = merged;
+
+        while (buffer.length >= metaint + 1) {
+          buffer = buffer.slice(metaint);
+          const metaLen = buffer[0] * 16;
+          if (buffer.length < 1 + metaLen) break;
+          const metaBytes = buffer.slice(1, 1 + metaLen);
+          buffer = buffer.slice(1 + metaLen);
+
+          const raw = new TextDecoder('utf-8').decode(metaBytes).replace(/\0+$/,'');
+          const m = raw.match(/StreamTitle='(.*?)';/);
+          if (m && m[1] && m[1] !== lastStreamTitle) {
+            lastStreamTitle = m[1];
+            const { artist, title } = parseStreamTitle(m[1]);
+            tTitle.textContent = title;
+            tArtist.textContent = artist;
+            statusEl.textContent = 'Tocando agora...';
+            const art = await fetchArtwork(artist, title);
+            updateMediaSession(artist, title, art);
+          }
+        }
+
+        audioBytesSeen += value.length;
+        if (audioBytesSeen > 40000) { reader.cancel().catch(()=>{}); break; }
+      }
+    } catch (e) {
+      if (e.name !== 'AbortError') console.warn('metadata fetch:', e);
+    }
+  };
+
+  readIcy();
+  metaInterval = setInterval(readIcy, 20000);
+}
+
+function stopMetadata(){
+  if (metaInterval) { clearInterval(metaInterval); metaInterval = null; }
+  if (metaAbort) { metaAbort.abort(); metaAbort = null; }
+}
+
+function updateUIForStation() {
+  tTitle.textContent = currentStation.name;
+  tArtist.textContent = currentStation.artist;
+  stationDesc.textContent = currentStation.desc;
+  liveName.textContent = currentStation.name;
+  statusEl.textContent = '';
+  
+  cover.src = "https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=800&auto=format&fit=crop";
+  bgImg.src = "https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=1400&auto=format&fit=crop";
+  lastStreamTitle = "";
+  lastQuery = "";
+  artBadge.textContent = 'Arte: iTunes Search';
+}
+
+async function togglePlay(){
+  if(!isPlaying){
+    if (!hasAutoFulscreenTriggered) {
+      toggleFullScreen();
+      hasAutoFulscreenTriggered = true;
+    }
+
+    try{
+      setupAnalyser();
+      if(audioCtx && audioCtx.state==='suspended') await audioCtx.resume();
+      audio.src = currentStation.url;
+      await audio.play();
+      isPlaying = true;
+      artWrap.classList.add('playing');
+      playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+      playBtn.classList.remove('is-paused');
+      
+      if (tTitle.textContent === currentStation.name) {
+          tTitle.textContent = 'Conectando...';
+      }
+      
+      startMetadata();
+    }catch(err){
+      console.error(err);
+      statusEl.textContent = 'Erro ao tocar. Tente novamente.';
+      setTimeout(()=>alert('Toque novamente — o navegador exige interação para tocar áudio.'), 100);
+    }
+  }else{
+    audio.pause();
+    stopMetadata();
+    isPlaying = false;
+    artWrap.classList.remove('playing');
+    playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14l11-7-11-7z"/></svg>';
+    playBtn.classList.add('is-paused');
+    statusEl.textContent = 'Pausado';
+    if('mediaSession' in navigator) navigator.mediaSession.playbackState='paused';
+  }
+}
+
+function changeStation(direction) {
+  currentStationIndex = (currentStationIndex + direction + STATIONS.length) % STATIONS.length;
+  currentStation = STATIONS[currentStationIndex];
+
+  const wasPlaying = isPlaying;
+
+  if (wasPlaying) {
+    audio.pause();
+    stopMetadata();
+    isPlaying = false;
+    artWrap.classList.remove('playing');
+    playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14l11-7-11-7z"/></svg>';
+    playBtn.classList.add('is-paused');
+  }
+
+  updateUIForStation();
+
+  if (wasPlaying) {
+    togglePlay();
+  }
+}
+
+playBtn.addEventListener('click', togglePlay);
+prevBtn.addEventListener('click', () => changeStation(-1));
+nextBtn.addEventListener('click', () => changeStation(1));
+
+document.addEventListener('keydown', e=>{ 
+  if(e.code==='Space'){ e.preventDefault(); togglePlay(); }
+  if(e.code==='ArrowLeft'){ e.preventDefault(); changeStation(-1); }
+  if(e.code==='ArrowRight'){ e.preventDefault(); changeStation(1); }
+});
+
+audio.addEventListener('playing', ()=>{ isPlaying=true; artWrap.classList.add('playing'); });
+audio.addEventListener('pause', ()=>{ isPlaying=false; artWrap.classList.remove('playing'); });
+
+const manifest = {
+  name: 'Multi Radio Player',
+  short_name: 'Radio',
+  start_url: window.location.href,
+  display: 'standalone',
+  orientation: 'portrait',
+  background_color: '#0a0a0a',
+  theme_color: '#0a0a0a',
+  icons: [{src: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=512&auto=format&fit=crop', sizes:'512x512', type:'image/jpeg'}]
+};
+const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+const mUrl = URL.createObjectURL(blob);
+const link = document.createElement('link'); link.rel='manifest'; link.href=mUrl; document.head.appendChild(link);
+
+if('serviceWorker' in navigator){
+  const swCode = `self.addEventListener('install', e=>self.skipWaiting()); self.addEventListener('fetch', e=>e.respondWith(fetch(e.request).catch(()=>caches.match(e.request))));`;
+  const swBlob = new Blob([swCode], {type:'application/javascript'});
+  const swUrl = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swUrl).catch(()=>{});
+}
+
+updateUIForStation();
+</script>
+</body>
+</html>
