@@ -3,401 +3,249 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>Jazz24 — Live Player</title>
+<title>Jazz24 — Live Player Multi-Device</title>
 <meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Jazz24">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Fraunces:opsz,wght@9..144,600&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
+  /* === VARIÁVEIS DE TEMA (CLARO/ESCURO) === */
+  :root {
+    --bg-overlay: radial-gradient(60% 50% at 50% 25%, rgba(0,0,0,0.15), rgba(0,0,0,0.88));
+    --bg-brightness: 0.32;
+    --text-main: #ffffff;
+    --text-muted: rgba(255,255,255,0.7);
+    --card-bg: rgba(22, 22, 22, 0.62);
+    --card-border: rgba(255, 255, 255, 0.11);
+    --btn-bg: #ffffff;
+    --btn-color: #000000;
+    --badge-bg: rgba(255, 255, 255, 0.1);
+    --focus-ring: #ffffff;
+  }
+
+  .light-mode {
+    --bg-overlay: radial-gradient(60% 50% at 50% 25%, rgba(255,255,255,0.4), rgba(255,255,255,0.85));
+    --bg-brightness: 0.85;
+    --text-main: #111111;
+    --text-muted: rgba(0,0,0,0.7);
+    --card-bg: rgba(255, 255, 255, 0.55);
+    --card-border: rgba(0, 0, 0, 0.15);
+    --btn-bg: #111111;
+    --btn-color: #ffffff;
+    --badge-bg: rgba(0, 0, 0, 0.1);
+    --focus-ring: #111111;
+  }
+
+  /* === RESET E SETUP === */
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{height:100%;overflow:hidden;}
   body{
     font-family:'Inter',system-ui,sans-serif;
-    background:#0a0a0a;color:#fff;
+    color: var(--text-main);
+    background: #0a0a0a;
     overscroll-behavior: none;
     -webkit-tap-highlight-color:transparent;
+    transition: color 0.4s ease;
   }
-  .bg{position:fixed;inset:0;z-index:-1}
-  .bg img{width:100%;height:100%;object-fit:cover;filter:blur(44px) brightness(0.32) saturate(1.25);transform:scale(1.12);transition:all 1s ease}
-  .bg::after{content:'';position:absolute;inset:0;background:radial-gradient(60% 50% at 50% 25%, rgba(0,0,0,0.15), rgba(0,0,0,0.88))}
 
+  /* === NAVEGAÇÃO TV (SILK) / ACESSIBILIDADE === */
+  button:focus-visible, input[type="range"]:focus-visible {
+    outline: 4px solid var(--focus-ring);
+    outline-offset: 4px;
+    border-radius: 8px;
+  }
+  .play:focus-visible { border-radius: 50%; }
+
+  /* === BACKGROUND === */
+  .bg{position:fixed;inset:0;z-index:-1}
+  .bg img{
+    width:100%;height:100%;object-fit:cover;
+    filter: blur(44px) brightness(var(--bg-brightness)) saturate(1.25);
+    transform:scale(1.12);transition:all 1s ease;
+  }
+  .bg::after{content:'';position:absolute;inset:0;background:var(--bg-overlay);transition:background 0.4s;}
+
+  /* === LAYOUT BASE (MOBILE FIRST) === */
   .app{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    height:100dvh;
-    padding:16px;
-    padding-top:max(16px, env(safe-area-inset-top));
-    padding-bottom:max(16px, env(safe-area-inset-bottom));
+    display:flex; align-items:center; justify-content:center;
+    height:100dvh; width:100vw;
+    padding:max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   }
 
   .card{
-    width:100%;
-    max-width:520px;
-    background:rgba(22,22,22,0.62);
+    width:100%; max-width:520px;
+    background:var(--card-bg);
     backdrop-filter:blur(28px) saturate(1.25);
     -webkit-backdrop-filter:blur(28px) saturate(1.25);
-    border:1px solid rgba(255,255,255,0.11);
+    border:1px solid var(--card-border);
     border-radius:24px;
     padding:18px;
     box-shadow:0 24px 70px rgba(0,0,0,0.65);
-    display:flex;
-    flex-direction:column;
-    gap:12px;
-    max-height: 100%;
-    overflow-y: auto;
+    display:flex; flex-direction:column; gap:16px;
+    max-height:100%; overflow-y:auto;
+    transition: background 0.4s, border 0.4s;
   }
 
-  /* --- CONTAINER DA ARTE E TOCA-DISCOS --- */
+  .card-content {
+    display: flex; flex-direction: column; gap: 12px;
+    flex: 1; justify-content: center;
+  }
+
+  /* --- BOTÕES NO TOPO (TEMA E TELA CHEIA) --- */
+  .top-actions {
+    position: absolute; top: 12px; right: 12px;
+    display: flex; gap: 8px; z-index: 10;
+  }
+  .action-btn {
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.16);
+    color: #fff; border-radius: 50%; width: 40px; height: 40px;
+    display: grid; place-items: center; cursor: pointer; transition: 0.2s;
+  }
+  .light-mode .action-btn {
+    background: rgba(255,255,255,0.4); color: #000; border-color: rgba(0,0,0,0.15);
+  }
+  .action-btn:hover { transform: scale(1.05); }
+  .action-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* --- ARTE E TOCA-DISCOS --- */
   .art{
     position:relative;
-    aspect-ratio:1;
+    width: 100%;
+    aspect-ratio: 1; /* Garante tamanho máximo quadrado */
     border-radius:18px;
     overflow:hidden;
     background:#151515;
     flex-shrink: 0;
+    margin: 0 auto;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
   }
-  
   .art img.cover-img{
     width:100%;height:100%;object-fit:cover;display:block;
     transition:transform .8s cubic-bezier(.2,.8,.2,1), opacity 0.5s ease;
-    position: absolute;
-    inset: 0;
-    z-index: 2;
+    position:absolute; inset:0; z-index:2;
   }
   .art.playing img.cover-img{transform:scale(1.05)}
-  
-  /* Lógica de exibição: Arte OU Disco */
   .art.has-cover img.cover-img { opacity: 1; pointer-events: auto; }
   .art:not(.has-cover) img.cover-img { opacity: 0; pointer-events: none; }
-
   .art.has-cover .turntable-container { display: none; }
   .art:not(.has-cover) .turntable-container { display: flex; }
 
-  /* ESTILOS DO TOCA-DISCOS INTEGRADO */
-  .turntable-container {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    background: radial-gradient(circle at center, #27272a 0%, #09090b 100%);
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.5s ease;
-  }
-
-  @keyframes vinyl-spin-anim {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-
-  .vinyl-spin {
-    animation: vinyl-spin-anim 1.8s linear infinite;
-    animation-play-state: paused;
-  }
-
-  .art.playing .vinyl-spin {
-    animation-play-state: running;
-  }
-
-  .vinyl-grooves {
-    background: 
-      radial-gradient(circle at center, 
-        #18181b 0%, #18181b 18%, 
-        transparent 18.5%, transparent 19%,
-        #111 19.5%, #111 28%,
-        transparent 28.5%, transparent 29%,
-        #1c1c1e 29.5%, #1c1c1e 40%,
-        transparent 40.5%, transparent 41%,
-        #111 41.5%, #111 55%,
-        transparent 55.5%, transparent 56%,
-        #1a1a1a 56.5%, #1a1a1a 70%,
-        transparent 70.5%, transparent 71%,
-        #0d0d0d 71.5%, #0d0d0d 88%,
-        #050505 100%
-      );
-  }
-
-  .vinyl-sheen {
-    background: conic-gradient(
-      from 0deg at 50% 50%,
-      rgba(255,255,255,0.03) 0deg,
-      rgba(255,255,255,0.12) 45deg,
-      rgba(255,255,255,0.03) 90deg,
-      rgba(255,255,255,0.03) 180deg,
-      rgba(255,255,255,0.12) 225deg,
-      rgba(255,255,255,0.03) 270deg,
-      rgba(255,255,255,0.03) 360deg
-    );
-    mix-blend-mode: screen;
-    pointer-events: none;
-  }
-
-  .tonearm-assembly {
-    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    transform-origin: 215px 35px;
-    transform: rotate(-22deg);
-  }
-
-  .art.playing .tonearm-assembly {
-    transform: rotate(0deg);
-  }
-
-  @keyframes stylus-vibrate {
-    0% { transform: translate(0, 0); }
-    50% { transform: translate(0.3px, -0.3px); }
-    100% { transform: translate(0, 0); }
-  }
-
-  .art.playing .playing-stylus {
-    animation: stylus-vibrate 0.12s steps(2, start) infinite;
-  }
+  /* Toca-discos interno (mantém-se escuro para estética real) */
+  .turntable-container { position:absolute; inset:0; z-index:1; background:radial-gradient(circle at center, #27272a 0%, #09090b 100%); align-items:center; justify-content:center; }
+  @keyframes vinyl-spin-anim { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  .vinyl-spin { animation: vinyl-spin-anim 1.8s linear infinite; animation-play-state: paused; }
+  .art.playing .vinyl-spin { animation-play-state: running; }
+  .vinyl-grooves { background: radial-gradient(circle at center, #18181b 0%, #18181b 18%, transparent 18.5%, transparent 19%, #111 19.5%, #111 28%, transparent 28.5%, transparent 29%, #1c1c1e 29.5%, #1c1c1e 40%, transparent 40.5%, transparent 41%, #111 41.5%, #111 55%, transparent 55.5%, transparent 56%, #1a1a1a 56.5%, #1a1a1a 70%, transparent 70.5%, transparent 71%, #0d0d0d 71.5%, #0d0d0d 88%, #050505 100%); }
+  .vinyl-sheen { background: conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,0.03) 0deg, rgba(255,255,255,0.12) 45deg, rgba(255,255,255,0.03) 90deg, rgba(255,255,255,0.03) 180deg, rgba(255,255,255,0.12) 225deg, rgba(255,255,255,0.03) 270deg, rgba(255,255,255,0.03) 360deg); mix-blend-mode: screen; pointer-events: none; }
+  .tonearm-assembly { transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-origin: 215px 35px; transform: rotate(-22deg); }
+  .art.playing .tonearm-assembly { transform: rotate(0deg); }
+  @keyframes stylus-vibrate { 0% { transform: translate(0, 0); } 50% { transform: translate(0.3px, -0.3px); } 100% { transform: translate(0, 0); } }
+  .art.playing .playing-stylus { animation: stylus-vibrate 0.12s steps(2, start) infinite; }
 
   /* --- LED LIVE --- */
   .live{
-    position:absolute;
-    top:6px;
-    left:6px;
-    background:rgba(0,0,0,0.45);
-    backdrop-filter:blur(10px);
-    -webkit-backdrop-filter:blur(10px);
-    padding:7.5px 14px;
-    border-radius:999px;
-    font-size:12px;
-    letter-spacing:.14em;font-weight:800;
-    display:flex;gap:7.5px;align-items:center;
-    border:1px solid rgba(255,255,255,0.16);
-    transition: color 0.3s;
-    z-index: 10;
+    position:absolute; top:8px; left:8px;
+    background:rgba(0,0,0,0.45); backdrop-filter:blur(10px);
+    padding:6px 12px; border-radius:999px;
+    font-size:11px; letter-spacing:.14em; font-weight:800; color:#fff;
+    display:flex; gap:6px; align-items:center;
+    border:1px solid rgba(255,255,255,0.16); z-index:10;
   }
-  .dot{
-    width:9px;height:9px;
-    background:#ff2a2a;
-    border-radius:50%;
-    box-shadow:0 0 14px #ff2a2a;
-    transition: all 0.3s;
-  }
-  .art.playing .dot {
-    background:#22c55e;
-    box-shadow:0 0 14px #22c55e;
-    animation:pulse 1.5s infinite;
-  }
-  .art.playing .live { color:#bbf7d0; }
+  .light-mode .live { background:rgba(255,255,255,0.4); color:#000; border-color:rgba(0,0,0,0.15); }
+  .dot{ width:8px; height:8px; background:#ff2a2a; border-radius:50%; box-shadow:0 0 10px #ff2a2a; }
+  .art.playing .dot { background:#22c55e; box-shadow:0 0 10px #22c55e; animation:pulse 1.5s infinite; }
   @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(.88)}}
 
-  /* --- BOTÃO TELA CHEIA (Canto inferior direito) --- */
-  .fs-btn{
-    position:absolute;
-    bottom:8px;
-    right:8px;
-    background:rgba(0,0,0,0.55);
-    backdrop-filter:blur(10px);
-    -webkit-backdrop-filter:blur(10px);
-    border:1px solid rgba(255,255,255,0.16);
-    color:#fff;border-radius:50%;width:40px;height:40px;
-    display:grid;place-items:center;cursor:pointer;
-    transition:background 0.2s;
-    z-index:10;
-  }
-  .fs-btn:hover{background:rgba(0,0,0,0.7)}
-  .fs-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  /* --- TEXTOS E METADADOS --- */
+  .meta{ display: flex; flex-direction: column; text-align: center; }
+  .station{font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:4px;}
+  .title{font-family:'Fraunces',serif; font-size:clamp(22px, 5vw, 32px); line-height:1.2; word-break:break-word;}
+  .artist{font-size:14px; color:var(--text-muted); margin-top:2px; word-break:break-word;}
 
-  .meta{ display: flex; flex-direction: column; }
-  .station{font-size:12px;letter-spacing:.05em;opacity:.65;font-weight:600;margin-bottom:6px;line-height:1.3;}
-  .title{
-    font-family:'Fraunces',serif;
-    font-size:clamp(20px, 5vw, 28px);
-    line-height:1.1;letter-spacing:-.02em;
-    overflow-wrap:break-word;word-break:break-word;
-  }
-  .artist{font-size:clamp(13px, 3.5vw, 15px);opacity:.82;margin-top:4px;word-break:break-word}
+  canvas{width:100%; height:40px; display:block; margin: 0 auto;}
 
-  canvas{width:100%;height:40px;display:block}
-
-  .controls{
-    margin-top: 4px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:24px;
-  }
-  
+  /* --- CONTROLES DE ÁUDIO --- */
+  .controls{ display:flex; align-items:center; justify-content:center; gap:24px; }
   .nav-btn{
-    background:none;border:none;color:#fff;cursor:pointer;
-    opacity:.75;transition:opacity 0.2s, transform 0.1s;
-    display:grid;place-items:center;
-    width:54px;height:54px;flex-shrink:0;
+    background:none;border:none;color:var(--text-main);cursor:pointer;
+    opacity:.75;transition:0.2s; display:grid;place-items:center; width:54px;height:54px;
   }
-  .nav-btn:hover{opacity:1}
+  .nav-btn:hover{opacity:1; transform:scale(1.1);}
   .nav-btn:active{transform:scale(0.9)}
   .nav-btn svg{width:36px;height:36px}
 
   .play{
-    width:90px;height:90px; 
-    border-radius:50%;background:#fff;color:#000;
-    border:none;display:grid;place-items:center;cursor:pointer;
-    transition:transform .15s;box-shadow:0 10px 28px rgba(255,255,255,0.28);
+    width:80px;height:80px; 
+    border-radius:50%; background:var(--btn-bg); color:var(--btn-color);
+    border:none; display:grid; place-items:center; cursor:pointer;
+    transition:transform .15s; box-shadow:0 10px 28px rgba(0,0,0,0.2);
     flex-shrink:0;
   }
   .play:active{transform:scale(.93)}
-  .play svg{width:36px;height:36px;margin-left:4px} 
+  .play svg{width:34px;height:34px; margin-left:4px} 
   .play.is-paused svg{margin-left:0}
 
-  .bottom-bar{
-    margin-top: 4px;
-    display:flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
+  /* --- BARRA INFERIOR --- */
+  .bottom-bar{ display:flex; flex-direction:column; gap:12px; }
+  .vol{ display:flex; align-items:center; gap:8px; width:100%; }
+  .vol input{ flex:1; accent-color:var(--text-main); height:4px; cursor:pointer; }
+  .icon-btn{ background:none; border:none; color:var(--text-main); cursor:pointer; font-size:20px; }
 
-  .vol{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    width: 100%;
-  }
-  .vol input{
-    flex:1; accent-color:#fff; height:4px; cursor:pointer; min-width:0;
-  }
-  .icon-btn{
-    background:none;border:none;color:#fff;
-    cursor:pointer;font-size:20px;opacity:.85;flex-shrink:0;
-  }
+  .info-group { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .badge-line{ display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
+  .badge{ font-size:10px; background:var(--badge-bg); padding:5px 8px; border-radius:999px; }
+  .status{ font-size:11px; color:var(--text-muted); min-height:16px; }
 
-  .info-group {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-    width: 100%;
-  }
-  .badge-line{ display:flex; gap:6px; justify-content: flex-end; }
-  .badge{
-    font-size:10px;background:rgba(255,255,255,0.1);
-    padding:5px 8px;border-radius:999px;
-    display:inline-flex;max-width:100%;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  }
-  .status{
-    font-size:11.5px;opacity:.7;line-height:1.4;word-break:break-word;
-    text-align:right; min-height:16px;
-  }
+  /* =========================================
+     MEDIA QUERIES PARA RESPONSIVIDADE (TABLET, TV E DESKTOP)
+     ========================================= */
 
-  @media(max-width:420px){
-    .controls{gap:16px}
-    .play{width:76px;height:76px} 
-    .play svg{width:30px;height:30px}
-    .nav-btn{width:44px;height:44px}
-    .nav-btn svg{width:30px;height:30px}
-  }
-
-  /* MODO PAISAGEM */
-  @media (orientation: landscape) and (max-height: 600px) {
-    .app { padding: 10px; }
-    
+  /* Telas Maiores (Tablet Landscape, Desktop, TV) */
+  @media (min-width: 768px) and (orientation: landscape) {
     .card {
-      max-width: 1000px;
-      max-height: 95dvh;
-      padding: 14px;
-      display: grid;
-      grid-template-columns: minmax(120px, 1fr) 1.6fr 180px;
-      grid-template-rows: 1fr auto;
-      grid-template-areas: 
-        "art meta controls"
-        "art vol controls";
-      gap: 16px 20px;
-      overflow: hidden;
-      border-radius: 20px;
-    }
-
-    .art {
-      grid-area: art;
-      height: 100%;
-      width: 100%;
-      aspect-ratio: unset;
-      max-height: 100%;
-    }
-    
-    .live { padding: 5px 10px; font-size: 9px; gap: 4.5px; top: 4px; left: 4px;}
-    .dot { width: 6px; height: 6px; box-shadow: 0 0 8px #ff2a2a; }
-    .art.playing .dot { box-shadow: 0 0 8px #22c55e; }
-
-    .fs-btn {
-      bottom: 8px;
-      right: 8px;
-      width: 30px;
-      height: 30px;
-    }
-    .fs-btn svg { width: 16px; height: 16px; }
-
-    .meta {
-      grid-area: meta;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      overflow: hidden;
-      min-height: 0;
-    }
-    .station { font-size: 11px; margin-bottom: 2px; }
-    .title { font-size: clamp(18px, 3vh, 24px); line-height: 1.1; }
-    .artist { font-size: 13px; margin-top: 2px; }
-
-    canvas { display: none; }
-
-    .bottom-bar {
-      grid-area: vol;
-      margin-top: 0;
-      flex-direction: column;
-      align-items: stretch;
-      justify-content: flex-end;
-      gap: 6px;
-    }
-    .vol { width: 100%; }
-    .info-group { 
-      flex-direction: row;
-      align-items: center; 
-      justify-content: space-between; 
-      width: 100%;
-    }
-    .badge-line { justify-content: flex-start; }
-    .status { text-align: right; min-height: auto; font-size: 10px; margin-top: 0;}
-
-    .controls {
-      grid-area: controls;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      max-width: 900px;
+      flex-direction: row; /* Lado a lado */
       align-items: center;
-      margin-top: 0;
-      gap: 10px;
-      height: 100%;
-      position: relative;
-      z-index: 2;
-      padding-right: 70px;
+      padding: 24px;
+      gap: 32px;
     }
     
-    #nextBtn { order: 1; }
-    .play { order: 2; width: 72px; height: 72px; }
-    .play svg { width: 30px; height: 30px; }
-    #prevBtn { order: 3; }
+    /* A arte cresce para preencher a coluna esquerda, respeitando limites */
+    .art {
+      width: 45%; 
+      max-width: 400px;
+      max-height: 80vh; 
+      margin: 0; 
+    }
     
-    .nav-btn { width: 44px; height: 44px; }
-    .nav-btn svg { width: 28px; height: 28px; }
+    .card-content {
+      width: 55%; 
+      text-align: left;
+      align-items: flex-start; 
+    }
 
-    canvas {
-      display: block;
-      position: absolute;
-      right: 14px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 60px;
-      height: 80%;
-      opacity: 0.8;
-      pointer-events: none;
-      z-index: 0;
-    }
+    .meta { text-align: left; width: 100%; }
+    .controls { justify-content: flex-start; width: 100%; margin: 16px 0; }
+    canvas { height: 60px; }
+    .info-group { align-items: flex-start; }
+    .badge-line { justify-content: flex-start; }
   }
+
+  /* Desktop Largo e TV (Aproveitamento Máximo) */
+  @media (min-width: 1200px) {
+    .card { max-width: 1100px; padding: 40px; gap: 60px; }
+    
+    /* Na TV e Desktop, a arte é gigante */
+    .art { max-width: 500px; }
+    
+    .title { font-size: 42px; }
+    .artist { font-size: 18px; }
+    .play { width: 90px; height: 90px; }
+    .nav-btn svg { width: 44px; height: 44px; }
+  }
+
 </style>
 </head>
 <body>
@@ -406,25 +254,25 @@
 <div class="app" id="appContainer">
   <div class="card">
     
+    <!-- LADO ESQUERDO (ARTE) -->
     <div class="art" id="artWrap">
-      <!-- Imagem de capa (quando disponível) -->
+      
+      <!-- Ações (Tema e Tela Cheia) -->
+      <div class="top-actions">
+        <button class="action-btn" id="themeBtn" aria-label="Alternar Tema" title="Mudar Tema">🌓</button>
+        <button class="action-btn" id="fsBtn" aria-label="Tela Cheia" title="Tela Cheia">
+          <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        </button>
+      </div>
+
       <img id="cover" class="cover-img" src="" alt="album art">
       
-      <!-- Toca-Discos Animado -->
       <div class="turntable-container" id="turntable">
         <div style="position: relative; width: 85%; height: 85%; display: flex; align-items: center; justify-content: center;">
-          
-          <!-- Prato do Toca-Discos -->
           <div style="position: relative; width: 100%; height: 100%; background: linear-gradient(to top right, #18181b, #27272a, #3f3f46); border-radius: 50%; box-shadow: inset 0 2px 8px rgba(0,0,0,0.8), 0 10px 20px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; border: 3px solid #3f3f46;">
-              
-              <!-- Vinil Giratório -->
               <div class="vinyl-spin vinyl-grooves" style="position: relative; width: 92%; height: 92%; border-radius: 50%; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
-                  
-                  <!-- Brilho do Vinil -->
                   <div class="vinyl-sheen" style="position: absolute; inset: 0; border-radius: 50%;"></div>
-
-                  <!-- Selo Central -->
-                  <div style="position: relative; width: 36%; height: 36%; background: linear-gradient(to bottom right, #dc2626, #9f1239); border-radius: 50%; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); display: flex; flex-direction: column; items-center; justify-content: center; border: 2px solid rgba(248,113,113,0.5); overflow: hidden;">
+                  <div style="position: relative; width: 36%; height: 36%; background: linear-gradient(to bottom right, #dc2626, #9f1239); border-radius: 50%; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); display: flex; flex-direction: column; align-items:center; justify-content: center; border: 2px solid rgba(248,113,113,0.5); overflow: hidden;">
                       <div style="position: absolute; inset: 6px; border: 1px solid rgba(254,202,202,0.3); border-radius: 50%;"></div>
                       <span style="font-size: 8px; font-weight: 700; color: #fff; letter-spacing: 0.1em; text-align: center;">JAZZ24</span>
                       <span style="font-size: 6px; color: #fecaca; font-weight: 500; margin-top: 2px; text-align: center;">LIVE</span>
@@ -432,8 +280,6 @@
                   </div>
               </div>
           </div>
-
-          <!-- Braço do Toca-Discos -->
           <div class="tonearm-assembly" style="position: absolute; top: -5%; right: -5%; width: 75%; height: 100%; pointer-events: none; z-index: 5;">
               <svg style="width: 100%; height: 100%; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.7));" viewBox="0 0 240 340" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <circle cx="215" cy="35" r="24" fill="url(#piv-grad)" stroke="#52525b" stroke-width="2"/>
@@ -451,73 +297,63 @@
                   </g>
                   <defs>
                       <linearGradient id="metal-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stop-color="#e4e4e7"/>
-                          <stop offset="50%" stop-color="#a1a1aa"/>
-                          <stop offset="100%" stop-color="#52525b"/>
+                          <stop offset="0%" stop-color="#e4e4e7"/><stop offset="50%" stop-color="#a1a1aa"/><stop offset="100%" stop-color="#52525b"/>
                       </linearGradient>
                       <radialGradient id="piv-grad" cx="50%" cy="50%" r="50%">
-                          <stop offset="0%" stop-color="#d4d4d8"/>
-                          <stop offset="70%" stop-color="#71717a"/>
-                          <stop offset="100%" stop-color="#27272a"/>
+                          <stop offset="0%" stop-color="#d4d4d8"/><stop offset="70%" stop-color="#71717a"/><stop offset="100%" stop-color="#27272a"/>
                       </radialGradient>
                       <linearGradient id="weight-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stop-color="#3f3f46"/>
-                          <stop offset="50%" stop-color="#71717a"/>
-                          <stop offset="100%" stop-color="#27272a"/>
+                          <stop offset="0%" stop-color="#3f3f46"/><stop offset="50%" stop-color="#71717a"/><stop offset="100%" stop-color="#27272a"/>
                       </linearGradient>
                   </defs>
               </svg>
           </div>
-
         </div>
       </div>
       
-      <!-- LED LIVE -->
       <div class="live"><span class="dot"></span> LIVE • <span id="liveName">Jazz24</span></div>
-      
-      <!-- Botão Tela Cheia -->
-      <button class="fs-btn" id="fsBtn" aria-label="Tela Cheia">
-        <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-      </button>
     </div>
 
-    <div class="meta">
-      <div class="station" id="stationDesc">Welcome to Jazz24 from Seattle and Tacoma, Washington.</div>
-      <div class="title" id="tTitle">Jazz24</div>
-      <div class="artist" id="tArtist">Seattle • jazz24.org</div>
-    </div>
-
-    <canvas id="viz"></canvas>
-
-    <div class="controls">
-      <button class="nav-btn" id="prevBtn" aria-label="Rádio Anterior">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
-      </button>
-
-      <button class="play" id="playBtn" aria-label="Play">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14l11-7-11-7z"/></svg>
-      </button>
-
-      <button class="nav-btn" id="nextBtn" aria-label="Próxima Rádio">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6v12z"/></svg>
-      </button>
-    </div>
-
-    <div class="bottom-bar">
-      <div class="vol">
-        <button class="icon-btn" id="muteBtn" title="Mudo" aria-label="Mudo">🔊</button>
-        <input type="range" id="vol" min="0" max="1" step="0.01" value="0.88" aria-label="Volume">
+    <!-- LADO DIREITO (CONTEÚDO) -->
+    <div class="card-content">
+      <div class="meta">
+        <div class="station" id="stationDesc">Welcome to Jazz24 from Seattle and Tacoma, Washington.</div>
+        <div class="title" id="tTitle">Jazz24</div>
+        <div class="artist" id="tArtist">Seattle • jazz24.org</div>
       </div>
-      
-      <div class="info-group">
-        <div class="badge-line">
-          <span class="badge">HTTPS • MP3</span>
-          <span class="badge" id="artBadge">Arte: iTunes Search</span>
+
+      <canvas id="viz"></canvas>
+
+      <div class="controls">
+        <button class="nav-btn" id="prevBtn" aria-label="Rádio Anterior">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+        </button>
+
+        <button class="play" id="playBtn" aria-label="Play">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14l11-7-11-7z"/></svg>
+        </button>
+
+        <button class="nav-btn" id="nextBtn" aria-label="Próxima Rádio">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6v12z"/></svg>
+        </button>
+      </div>
+
+      <div class="bottom-bar">
+        <div class="vol">
+          <button class="icon-btn" id="muteBtn" title="Mudo" aria-label="Mudo">🔊</button>
+          <input type="range" id="vol" min="0" max="1" step="0.01" value="0.88" aria-label="Volume">
         </div>
-        <div class="status" id="status"></div>
+        
+        <div class="info-group">
+          <div class="badge-line">
+            <span class="badge">HTTPS • MP3</span>
+            <span class="badge" id="artBadge">Arte: iTunes Search</span>
+          </div>
+          <div class="status" id="status"></div>
+        </div>
       </div>
     </div>
-
+    
   </div>
 </div>
 
@@ -525,30 +361,10 @@
 
 <script type="module">
 const STATIONS = [
-  {
-    name: "Jazz24",
-    url: "https://knkx-live-a.edge.audiocdn.com/6285_256k",
-    desc: "Welcome to Jazz24 from Seattle and Tacoma, Washington.",
-    artist: "Seattle • jazz24.org"
-  },
-  {
-    name: "Ella Jazz Ballads",
-    url: "https://stream.ella-radio.de/ella-jazz-ballads",
-    desc: "Ella Radio. Made with ♥ for music lovers.",
-    artist: "Ella Radio • Jazz Ballads"
-  },
-  {
-    name: "Ella Modern Vocal Jazz",
-    url: "https://stream.ella-radio.de/ella-modern-vocal-jazz",
-    desc: "Ella Radio. Made with ♥ for music lovers.",
-    artist: "Ella Radio • Modern Vocal Jazz"
-  },
-  {
-    name: "Ella Coffee Jazz",
-    url: "https://stream.ella-radio.de/ella-coffee-jazz",
-    desc: "Ella Radio. Made with ♥ for music lovers.",
-    artist: "Ella Radio • Coffee Jazz"
-  }
+  { name: "Jazz24", url: "https://knkx-live-a.edge.audiocdn.com/6285_256k", desc: "Welcome to Jazz24 from Seattle and Tacoma", artist: "Seattle • jazz24.org" },
+  { name: "Ella Jazz Ballads", url: "https://stream.ella-radio.de/ella-jazz-ballads", desc: "Ella Radio. Made with ♥ for music lovers.", artist: "Ella Radio • Jazz Ballads" },
+  { name: "Ella Modern Vocal Jazz", url: "https://stream.ella-radio.de/ella-modern-vocal-jazz", desc: "Ella Radio. Made with ♥ for music lovers.", artist: "Ella Radio • Modern Vocal Jazz" },
+  { name: "Ella Coffee Jazz", url: "https://stream.ella-radio.de/ella-coffee-jazz", desc: "Ella Radio. Made with ♥ for music lovers.", artist: "Ella Radio • Coffee Jazz" }
 ];
 
 const DEFAULT_BG = "https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=1400&auto=format&fit=crop";
@@ -573,6 +389,7 @@ const canvas = document.getElementById('viz');
 const ctx = canvas.getContext('2d');
 const appContainer = document.getElementById('appContainer');
 const fsBtn = document.getElementById('fsBtn');
+const themeBtn = document.getElementById('themeBtn');
 const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
 
@@ -581,6 +398,14 @@ let analyser, dataArray, audioCtx, sourceNode;
 let lastQuery = "";
 let lastStreamTitle = "";
 
+/* --- CONTROLE DE TEMA (CLARO/ESCURO) --- */
+let isLightMode = false;
+themeBtn.addEventListener('click', () => {
+  isLightMode = !isLightMode;
+  document.body.classList.toggle('light-mode', isLightMode);
+});
+
+/* --- SETAR ARTE --- */
 function setArtworkState(hasCover, artUrl = null) {
   if (hasCover && artUrl) {
     cover.src = artUrl;
@@ -593,43 +418,18 @@ function setArtworkState(hasCover, artUrl = null) {
   }
 }
 
-/* --- CONTROLE DE TELA CHEIA --- */
-function isFullScreen() {
-  return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
-}
-
+/* --- TELA CHEIA --- */
+function isFullScreen() { return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement); }
 function requestFullScreen() {
-  if (isFullScreen()) return;
   const el = appContainer;
-  if (el.requestFullscreen) {
-    el.requestFullscreen().catch(()=>{});
-  } else if (el.webkitRequestFullscreen) {
-    el.webkitRequestFullscreen();
-  } else if (el.msRequestFullscreen) {
-    el.msRequestFullscreen();
-  }
+  if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
 }
-
 function exitFullScreen() {
-  if (!isFullScreen()) return;
-  if (document.exitFullscreen) {
-    document.exitFullscreen().catch(()=>{});
-  } else if (document.webkitExitFullscreen) {
-    document.webkitExitFullscreen();
-  } else if (document.msExitFullscreen) {
-    document.msExitFullscreen();
-  }
+  if (document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+  else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
 }
-
-function toggleFullScreen() {
-  if (!isFullScreen()) requestFullScreen();
-  else exitFullScreen();
-}
-
-fsBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
-  toggleFullScreen();
-});
+fsBtn.addEventListener('click', (e) => { e.stopPropagation(); isFullScreen() ? exitFullScreen() : requestFullScreen(); });
 
 /* --- VOLUME --- */
 const savedVol = localStorage.getItem('jazz24_vol');
@@ -640,12 +440,9 @@ vol.addEventListener('input', () => {
   localStorage.setItem('jazz24_vol', vol.value);
   if(audio.muted && audio.volume > 0){ audio.muted = false; muteBtn.textContent = '🔊'; }
 });
-muteBtn.addEventListener('click', () => {
-  audio.muted = !audio.muted;
-  muteBtn.textContent = audio.muted ? '🔇' : '🔊';
-});
+muteBtn.addEventListener('click', () => { audio.muted = !audio.muted; muteBtn.textContent = audio.muted ? '🔇' : '🔊'; });
 
-/* --- ANALISADOR --- */
+/* --- ANALISADOR VISUAL (CANVAS) --- */
 function setupAnalyser(){
   if(audioCtx) return;
   try {
@@ -656,47 +453,39 @@ function setupAnalyser(){
     sourceNode = audioCtx.createMediaElementSource(audio);
     sourceNode.connect(analyser);
     analyser.connect(audioCtx.destination);
-  } catch(e) { console.log('Analyser error (CORS)', e); }
+  } catch(e) {}
 }
 
 function draw(){
   requestAnimationFrame(draw);
   if (!canvas.offsetWidth) return;
   
-  const isLandscape = window.matchMedia("(orientation: landscape) and (max-height: 600px)").matches;
-  
   const w = canvas.width = canvas.offsetWidth * 2;
-  const h = canvas.height = (isLandscape ? canvas.offsetHeight : 80);
+  const h = canvas.height = canvas.offsetHeight * 2;
   
   ctx.clearRect(0,0,w,h);
   if(!analyser || !dataArray) return;
   analyser.getByteFrequencyData(dataArray);
   
-  if (isLandscape) {
-    const barH = h / dataArray.length * 1.9;
-    let y = h;
-    for(let i=0;i<dataArray.length;i++){
-      const v = dataArray[i]/255;
-      const bw = v * w * 0.92;
-      ctx.fillStyle = `rgba(255,255,255,${0.18 + v*0.82})`;
-      ctx.fillRect(0, y, bw, barH*0.78);
-      y -= barH;
-    }
-  } else {
-    const barW = w / dataArray.length * 1.9;
-    let x = 0;
-    for(let i=0;i<dataArray.length;i++){
-      const v = dataArray[i]/255;
-      const bh = v * h * 0.92;
-      ctx.fillStyle = `rgba(255,255,255,${0.18 + v*0.82})`;
-      ctx.fillRect(x, h - bh, barW*0.78, bh);
-      x += barW;
-    }
+  const barW = w / dataArray.length * 1.9;
+  let x = 0;
+  
+  // Lê o tema atual para pintar as barras da cor certa
+  const r = isLightMode ? 0 : 255;
+  const g = isLightMode ? 0 : 255;
+  const b = isLightMode ? 0 : 255;
+
+  for(let i=0;i<dataArray.length;i++){
+    const v = dataArray[i]/255;
+    const bh = v * h * 0.92;
+    ctx.fillStyle = `rgba(${r},${g},${b},${0.18 + v*0.82})`;
+    ctx.fillRect(x, h - bh, barW*0.78, bh);
+    x += barW;
   }
 }
 draw();
 
-/* --- BUSCA DE ARTE --- */
+/* --- METADADOS E BUSCA DE ARTE --- */
 function fetchArtwork(artist, title){
   return new Promise((resolve) => {
     const q = `${artist} ${title}`.trim();
@@ -704,35 +493,23 @@ function fetchArtwork(artist, title){
     lastQuery = q;
     artBadge.textContent = `Buscando arte...`;
 
-    const callbackName = 'itunesCallback_' + Date.now() + '_' + Math.floor(Math.random()*1000);
-
-    const timeout = setTimeout(() => {
-      cleanup();
-      artBadge.textContent = 'Arte: fallback';
-      setArtworkState(false);
-      resolve(null);
-    }, 8000);
+    const callbackName = 'itunesCallback_' + Date.now();
+    const timeout = setTimeout(() => { cleanup(); resolve(null); }, 8000);
 
     function cleanup(){
       clearTimeout(timeout);
-      try { delete window[callbackName]; } catch(e){ window[callbackName] = undefined; }
-      if(script && script.parentNode) script.parentNode.removeChild(script);
+      try { delete window[callbackName]; } catch(e){}
     }
 
     window[callbackName] = (data) => {
       let art = null;
-      try {
-        if(data && data.results && data.results[0] && data.results[0].artworkUrl100){
-          art = data.results[0].artworkUrl100.replace('100x100bb','600x600bb');
-          setArtworkState(true, art);
-          artBadge.textContent = `Arte: ${data.results[0].artistName}`;
-        } else {
-          artBadge.textContent = 'Arte: fallback';
-          setArtworkState(false);
-        }
-      } catch(e){
-        artBadge.textContent = 'Arte: fallback';
+      if(data && data.results && data.results[0]){
+        art = data.results[0].artworkUrl100.replace('100x100bb','600x600bb');
+        setArtworkState(true, art);
+        artBadge.textContent = `Arte: ${data.results[0].artistName}`;
+      } else {
         setArtworkState(false);
+        artBadge.textContent = 'Arte: fallback';
       }
       cleanup();
       resolve(art);
@@ -740,38 +517,14 @@ function fetchArtwork(artist, title){
 
     const script = document.createElement('script');
     script.src = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=1&callback=${callbackName}`;
-    script.onerror = () => {
-      artBadge.textContent = 'Arte: fallback';
-      setArtworkState(false);
-      cleanup();
-      resolve(null);
-    };
     document.body.appendChild(script);
   });
 }
 
-function updateMediaSession(artist, title, art){
-  if('mediaSession' in navigator){
-    try {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: title || currentStation.name,
-        artist: artist || currentStation.artist,
-        album: currentStation.name,
-        artwork: [{src: art || DEFAULT_BG, sizes:'600x600', type:'image/jpeg'}]
-      });
-      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
-    } catch(e) {}
-  }
-}
-
-/* --- PARSER DE METADADOS ICY --- */
 function parseStreamTitle(s){
   if(!s) return {artist: currentStation.artist, title: currentStation.name};
   const parts = s.split(' - ');
-  if(parts.length>=2){
-    return {artist: parts[0].trim(), title: parts.slice(1).join(' - ').trim()};
-  }
-  return {artist: currentStation.artist, title:s.trim()};
+  return parts.length>=2 ? {artist: parts[0].trim(), title: parts.slice(1).join(' - ').trim()} : {artist: currentStation.artist, title:s.trim()};
 }
 
 let metaAbort = null;
@@ -779,63 +532,40 @@ let metaInterval = null;
 
 async function startMetadata(){
   if (metaInterval) return;
-
   const readIcy = async () => {
     if (metaAbort) metaAbort.abort();
     metaAbort = new AbortController();
-
     try {
-      const res = await fetch(currentStation.url, {
-        headers: { 'Icy-MetaData': '1' },
-        signal: metaAbort.signal
-      });
-
+      const res = await fetch(currentStation.url, { headers: { 'Icy-MetaData': '1' }, signal: metaAbort.signal });
       const metaint = parseInt(res.headers.get('icy-metaint') || '0', 10);
-      if (!res.body || !metaint) {
-        statusEl.textContent = 'Metadata indisponível.';
-        return;
-      }
+      if (!res.body || !metaint) return;
 
       const reader = res.body.getReader();
       let buffer = new Uint8Array(0);
-      let audioBytesSeen = 0;
-
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-
         const merged = new Uint8Array(buffer.length + value.length);
         merged.set(buffer); merged.set(value, buffer.length);
         buffer = merged;
-
         while (buffer.length >= metaint + 1) {
           buffer = buffer.slice(metaint);
           const metaLen = buffer[0] * 16;
           if (buffer.length < 1 + metaLen) break;
           const metaBytes = buffer.slice(1, 1 + metaLen);
           buffer = buffer.slice(1 + metaLen);
-
           const raw = new TextDecoder('utf-8').decode(metaBytes).replace(/\0+$/,'');
           const m = raw.match(/StreamTitle='(.*?)';/);
           if (m && m[1] && m[1] !== lastStreamTitle) {
             lastStreamTitle = m[1];
             const { artist, title } = parseStreamTitle(m[1]);
-            tTitle.textContent = title;
-            tArtist.textContent = artist;
-            statusEl.textContent = 'Tocando agora...';
-            const art = await fetchArtwork(artist, title);
-            updateMediaSession(artist, title, art);
+            tTitle.textContent = title; tArtist.textContent = artist;
+            await fetchArtwork(artist, title);
           }
         }
-
-        audioBytesSeen += value.length;
-        if (audioBytesSeen > 40000) { reader.cancel().catch(()=>{}); break; }
       }
-    } catch (e) {
-      if (e.name !== 'AbortError') console.warn('metadata fetch:', e);
-    }
+    } catch (e) {}
   };
-
   readIcy();
   metaInterval = setInterval(readIcy, 20000);
 }
@@ -850,20 +580,14 @@ function updateUIForStation() {
   tArtist.textContent = currentStation.artist;
   stationDesc.textContent = currentStation.desc;
   liveName.textContent = currentStation.name;
-  statusEl.textContent = '';
-  
   setArtworkState(false);
-  lastStreamTitle = "";
-  lastQuery = "";
+  lastStreamTitle = ""; lastQuery = "";
   artBadge.textContent = 'Arte: iTunes Search';
 }
 
-/* --- PLAY / PAUSE --- */
+/* --- PLAY / PAUSE E TROCA DE RÁDIO --- */
 async function togglePlay(){
   if(!isPlaying){
-    /* Ao dar Play: entra em tela cheia */
-    requestFullScreen();
-
     try{
       setupAnalyser();
       if(audioCtx && audioCtx.state==='suspended') await audioCtx.resume();
@@ -873,101 +597,32 @@ async function togglePlay(){
       artWrap.classList.add('playing');
       playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
       playBtn.classList.remove('is-paused');
-      
-      if (tTitle.textContent === currentStation.name) {
-          tTitle.textContent = 'Conectando...';
-      }
-      
       startMetadata();
-    }catch(err){
-      console.error(err);
-      statusEl.textContent = 'Erro ao tocar. Tente novamente.';
-      setTimeout(()=>alert('Toque novamente — o navegador exige interação para tocar áudio.'), 100);
-    }
+    }catch(err){ console.error(err); }
   }else{
-    /* Ao pausar: sai da tela cheia */
-    audio.pause();
-    stopMetadata();
+    audio.pause(); stopMetadata();
     isPlaying = false;
     artWrap.classList.remove('playing');
     playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14l11-7-11-7z"/></svg>';
     playBtn.classList.add('is-paused');
-    statusEl.textContent = 'Pausado';
-    if('mediaSession' in navigator) navigator.mediaSession.playbackState='paused';
-    exitFullScreen();
   }
 }
 
-/* --- TROCA DE ESTAÇÃO --- */
 function changeStation(direction) {
   currentStationIndex = (currentStationIndex + direction + STATIONS.length) % STATIONS.length;
   currentStation = STATIONS[currentStationIndex];
-
   const wasPlaying = isPlaying;
-
   if (wasPlaying) {
-    audio.pause();
-    stopMetadata();
-    isPlaying = false;
+    audio.pause(); stopMetadata(); isPlaying = false;
     artWrap.classList.remove('playing');
-    playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14l11-7-11-7z"/></svg>';
-    playBtn.classList.add('is-paused');
   }
-
   updateUIForStation();
-
-  if (wasPlaying) {
-    togglePlay();
-  }
+  if (wasPlaying) togglePlay();
 }
 
 playBtn.addEventListener('click', togglePlay);
 prevBtn.addEventListener('click', () => changeStation(-1));
 nextBtn.addEventListener('click', () => changeStation(1));
-
-/* --- ATALHOS DE TECLADO --- */
-document.addEventListener('keydown', e=>{ 
-  if(e.code==='Space'){ e.preventDefault(); togglePlay(); }
-  if(e.code==='ArrowLeft'){ e.preventDefault(); changeStation(-1); }
-  if(e.code==='ArrowRight'){ e.preventDefault(); changeStation(1); }
-});
-
-/* --- SINCRONIZA ESTADO COM O AUDIO --- */
-audio.addEventListener('playing', ()=>{ 
-  isPlaying = true; 
-  artWrap.classList.add('playing'); 
-});
-audio.addEventListener('pause', ()=>{ 
-  isPlaying = false; 
-  artWrap.classList.remove('playing'); 
-});
-
-/* Sai da tela cheia se o usuário fechar pelo botão nativo do navegador/OS */
-['fullscreenchange','webkitfullscreenchange','msfullscreenchange'].forEach(evt=>{
-  document.addEventListener(evt, ()=>{ /* nenhuma ação extra necessária */ });
-});
-
-/* --- MANIFEST + SERVICE WORKER --- */
-const manifest = {
-  name: 'Multi Radio Player',
-  short_name: 'Radio',
-  start_url: window.location.href,
-  display: 'standalone',
-  orientation: 'portrait',
-  background_color: '#0a0a0a',
-  theme_color: '#0a0a0a',
-  icons: [{src: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=512&auto=format&fit=crop', sizes:'512x512', type:'image/jpeg'}]
-};
-const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
-const mUrl = URL.createObjectURL(blob);
-const link = document.createElement('link'); link.rel='manifest'; link.href=mUrl; document.head.appendChild(link);
-
-if('serviceWorker' in navigator){
-  const swCode = `self.addEventListener('install', e=>self.skipWaiting()); self.addEventListener('fetch', e=>e.respondWith(fetch(e.request).catch(()=>caches.match(e.request))));`;
-  const swBlob = new Blob([swCode], {type:'application/javascript'});
-  const swUrl = URL.createObjectURL(swBlob);
-  navigator.serviceWorker.register(swUrl).catch(()=>{});
-}
 
 updateUIForStation();
 </script>
