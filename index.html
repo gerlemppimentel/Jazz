@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>Jazz24 — Live Player Multi-Device</title>
+<title>Jazz24 — Híbrido (Rádio & Local)</title>
 <meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Fraunces:opsz,wght@9..144,600&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<!-- Biblioteca para ler metadados (ID3) de MP3 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
 <style>
   /* === VARIÁVEIS DE TEMA (CLARO/ESCURO) === */
   :root {
@@ -21,6 +23,8 @@
     --btn-color: #000000;
     --badge-bg: rgba(255, 255, 255, 0.1);
     --focus-ring: #ffffff;
+    /* Fundo atrás do disco (Modo Escuro) */
+    --turntable-bg: radial-gradient(circle at center, #6b7280 0%, #374151 100%);
   }
 
   .light-mode {
@@ -34,6 +38,8 @@
     --btn-color: #ffffff;
     --badge-bg: rgba(0, 0, 0, 0.1);
     --focus-ring: #111111;
+    /* Fundo atrás do disco (Modo Claro) */
+    --turntable-bg: radial-gradient(circle at center, #d1d5db 0%, #9ca3af 100%);
   }
 
   /* === RESET E SETUP === */
@@ -48,11 +54,9 @@
     transition: color 0.4s ease;
   }
 
-  /* === NAVEGAÇÃO TV (SILK) / ACESSIBILIDADE === */
-  button:focus-visible, input[type="range"]:focus-visible {
-    outline: 4px solid var(--focus-ring);
-    outline-offset: 4px;
-    border-radius: 8px;
+  /* Acessibilidade (TV) */
+  button:focus-visible, input[type="range"]:focus-visible, label:focus-within {
+    outline: 4px solid var(--focus-ring); outline-offset: 4px; border-radius: 8px;
   }
   .play:focus-visible { border-radius: 50%; }
 
@@ -65,7 +69,7 @@
   }
   .bg::after{content:'';position:absolute;inset:0;background:var(--bg-overlay);transition:background 0.4s;}
 
-  /* === LAYOUT BASE (MOBILE FIRST) === */
+  /* === LAYOUT BASE (MOBILE FIRST PORTRAIT) === */
   .app{
     display:flex; align-items:center; justify-content:center;
     height:100dvh; width:100vw;
@@ -73,33 +77,24 @@
   }
 
   .card{
-    width:100%; max-width:520px;
-    background:var(--card-bg);
-    backdrop-filter:blur(28px) saturate(1.25);
-    -webkit-backdrop-filter:blur(28px) saturate(1.25);
-    border:1px solid var(--card-border);
-    border-radius:24px;
-    padding:18px;
+    width:100%; max-width:520px; background:var(--card-bg);
+    backdrop-filter:blur(28px) saturate(1.25); -webkit-backdrop-filter:blur(28px) saturate(1.25);
+    border:1px solid var(--card-border); border-radius:24px; padding:18px;
     box-shadow:0 24px 70px rgba(0,0,0,0.65);
-    display:flex; flex-direction:column; gap:16px;
-    max-height:100%; overflow-y:auto;
+    display:flex; flex-direction:column; gap:16px; max-height:100%; overflow-y:auto;
     transition: background 0.4s, border 0.4s;
   }
 
   .card-content {
-    display: flex; flex-direction: column; gap: 12px;
-    flex: 1; justify-content: center;
+    display: flex; flex-direction: column; gap: 12px; flex: 1; justify-content: center;
   }
 
-  /* --- BOTÕES NO TOPO (TEMA E TELA CHEIA) --- */
+  /* --- BOTÕES DE ACÇÃO (PASTA, TEMA, TELA CHEIA) --- */
   .top-actions {
-    position: absolute; top: 12px; right: 12px;
-    display: flex; gap: 8px; z-index: 10;
+    position: absolute; top: 12px; right: 12px; display: flex; gap: 8px; z-index: 10;
   }
   .action-btn {
-    background: rgba(0,0,0,0.4);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(0,0,0,0.4); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.16);
     color: #fff; border-radius: 50%; width: 40px; height: 40px;
     display: grid; place-items: center; cursor: pointer; transition: 0.2s;
   }
@@ -111,15 +106,8 @@
 
   /* --- ARTE E TOCA-DISCOS --- */
   .art{
-    position:relative;
-    width: 100%;
-    aspect-ratio: 1; /* Garante tamanho máximo quadrado */
-    border-radius:18px;
-    overflow:hidden;
-    background:#151515;
-    flex-shrink: 0;
-    margin: 0 auto;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    position:relative; width: 100%; aspect-ratio: 1; border-radius:18px; overflow:hidden;
+    background:#151515; flex-shrink: 0; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
   }
   .art img.cover-img{
     width:100%;height:100%;object-fit:cover;display:block;
@@ -132,8 +120,14 @@
   .art.has-cover .turntable-container { display: none; }
   .art:not(.has-cover) .turntable-container { display: flex; }
 
-  /* Toca-discos interno (mantém-se escuro para estética real) */
-  .turntable-container { position:absolute; inset:0; z-index:1; background:radial-gradient(circle at center, #27272a 0%, #09090b 100%); align-items:center; justify-content:center; }
+  /* Toca-discos interno com fundo CINZA */
+  .turntable-container {
+    position:absolute; inset:0; z-index:1;
+    background: var(--turntable-bg);
+    align-items:center; justify-content:center;
+    transition: background 0.4s;
+  }
+  
   @keyframes vinyl-spin-anim { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   .vinyl-spin { animation: vinyl-spin-anim 1.8s linear infinite; animation-play-state: paused; }
   .art.playing .vinyl-spin { animation-play-state: running; }
@@ -144,14 +138,11 @@
   @keyframes stylus-vibrate { 0% { transform: translate(0, 0); } 50% { transform: translate(0.3px, -0.3px); } 100% { transform: translate(0, 0); } }
   .art.playing .playing-stylus { animation: stylus-vibrate 0.12s steps(2, start) infinite; }
 
-  /* --- LED LIVE --- */
+  /* --- LED LIVE/LOCAL --- */
   .live{
-    position:absolute; top:8px; left:8px;
-    background:rgba(0,0,0,0.45); backdrop-filter:blur(10px);
-    padding:6px 12px; border-radius:999px;
-    font-size:11px; letter-spacing:.14em; font-weight:800; color:#fff;
-    display:flex; gap:6px; align-items:center;
-    border:1px solid rgba(255,255,255,0.16); z-index:10;
+    position:absolute; top:8px; left:8px; background:rgba(0,0,0,0.45); backdrop-filter:blur(10px);
+    padding:6px 12px; border-radius:999px; font-size:11px; letter-spacing:.14em; font-weight:800; color:#fff;
+    display:flex; gap:6px; align-items:center; border:1px solid rgba(255,255,255,0.16); z-index:10;
   }
   .light-mode .live { background:rgba(255,255,255,0.4); color:#000; border-color:rgba(0,0,0,0.15); }
   .dot{ width:8px; height:8px; background:#ff2a2a; border-radius:50%; box-shadow:0 0 10px #ff2a2a; }
@@ -177,55 +168,55 @@
   .nav-btn svg{width:36px;height:36px}
 
   .play{
-    width:80px;height:80px; 
-    border-radius:50%; background:var(--btn-bg); color:var(--btn-color);
+    width:80px;height:80px; border-radius:50%; background:var(--btn-bg); color:var(--btn-color);
     border:none; display:grid; place-items:center; cursor:pointer;
-    transition:transform .15s; box-shadow:0 10px 28px rgba(0,0,0,0.2);
-    flex-shrink:0;
+    transition:transform .15s; box-shadow:0 10px 28px rgba(0,0,0,0.2); flex-shrink:0;
   }
   .play:active{transform:scale(.93)}
   .play svg{width:34px;height:34px; margin-left:4px} 
   .play.is-paused svg{margin-left:0}
 
-  /* --- BARRA INFERIOR --- */
   .bottom-bar{ display:flex; flex-direction:column; gap:12px; }
   .vol{ display:flex; align-items:center; gap:8px; width:100%; }
   .vol input{ flex:1; accent-color:var(--text-main); height:4px; cursor:pointer; }
   .icon-btn{ background:none; border:none; color:var(--text-main); cursor:pointer; font-size:20px; }
-
   .info-group { display:flex; flex-direction:column; align-items:center; gap:6px; }
   .badge-line{ display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
   .badge{ font-size:10px; background:var(--badge-bg); padding:5px 8px; border-radius:999px; }
   .status{ font-size:11px; color:var(--text-muted); min-height:16px; }
 
   /* =========================================
-     MEDIA QUERIES PARA RESPONSIVIDADE (TABLET, TV E DESKTOP)
+     CORREÇÃO: MOBILE PAISAGEM (SMARTPHONES DEITADOS)
      ========================================= */
-
-  /* Telas Maiores (Tablet Landscape, Desktop, TV) */
-  @media (min-width: 768px) and (orientation: landscape) {
+  @media (max-height: 600px) and (orientation: landscape) {
+    .app { padding: 8px; }
     .card {
-      max-width: 900px;
-      flex-direction: row; /* Lado a lado */
-      align-items: center;
-      padding: 24px;
-      gap: 32px;
+      flex-direction: row; padding: 12px; gap: 16px;
+      max-width: 800px; max-height: 100vh; align-items: center; border-radius: 16px;
     }
+    .art { width: 40%; max-width: 250px; max-height: 90vh; }
+    .card-content { width: 60%; gap: 6px; overflow-y: auto; padding-right: 8px; align-items: flex-start; text-align: left; }
+    .meta { text-align: left; }
+    .title { font-size: clamp(18px, 4vh, 24px); }
+    .artist { font-size: 13px; }
+    .controls { gap: 16px; margin: 4px 0; justify-content: flex-start; }
+    .play { width: 54px; height: 54px; }
+    .play svg { width: 24px; height: 24px; }
+    .nav-btn svg { width: 28px; height: 28px; }
+    canvas { height: 30px; }
+    .info-group { align-items: flex-start; }
+    .badge-line { justify-content: flex-start; }
     
-    /* A arte cresce para preencher a coluna esquerda, respeitando limites */
-    .art {
-      width: 45%; 
-      max-width: 400px;
-      max-height: 80vh; 
-      margin: 0; 
-    }
-    
-    .card-content {
-      width: 55%; 
-      text-align: left;
-      align-items: flex-start; 
-    }
+    .top-actions { top: 6px; right: 6px; }
+    .action-btn { width: 32px; height: 32px; }
+    .action-btn svg { width: 16px; height: 16px; }
+  }
 
+  /* Telas Maiores (Tablet, Desktop, TV - Paisagem) */
+  @media (min-width: 768px) and (min-height: 601px) and (orientation: landscape) {
+    .card { max-width: 900px; flex-direction: row; align-items: center; padding: 24px; gap: 32px; }
+    .art { width: 45%; max-width: 400px; max-height: 80vh; margin: 0; }
+    .card-content { width: 55%; text-align: left; align-items: flex-start; }
     .meta { text-align: left; width: 100%; }
     .controls { justify-content: flex-start; width: 100%; margin: 16px 0; }
     canvas { height: 60px; }
@@ -233,19 +224,15 @@
     .badge-line { justify-content: flex-start; }
   }
 
-  /* Desktop Largo e TV (Aproveitamento Máximo) */
+  /* Desktop Largo e TV */
   @media (min-width: 1200px) {
     .card { max-width: 1100px; padding: 40px; gap: 60px; }
-    
-    /* Na TV e Desktop, a arte é gigante */
     .art { max-width: 500px; }
-    
     .title { font-size: 42px; }
     .artist { font-size: 18px; }
     .play { width: 90px; height: 90px; }
     .nav-btn svg { width: 44px; height: 44px; }
   }
-
 </style>
 </head>
 <body>
@@ -257,8 +244,14 @@
     <!-- LADO ESQUERDO (ARTE) -->
     <div class="art" id="artWrap">
       
-      <!-- Ações (Tema e Tela Cheia) -->
+      <!-- Ações: Pasta, Tema e Tela Cheia -->
       <div class="top-actions">
+        <!-- O input hidden é acionado ao clicar na label -->
+        <label class="action-btn" title="Abrir Pasta Local">
+          <input type="file" id="folderInput" webkitdirectory directory multiple accept="audio/mp3, audio/mpeg, audio/aac, audio/mp4, .m4a" style="display:none">
+          <svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 14H4V8h16v12z"/></svg>
+        </label>
+        
         <button class="action-btn" id="themeBtn" aria-label="Alternar Tema" title="Mudar Tema">🌓</button>
         <button class="action-btn" id="fsBtn" aria-label="Tela Cheia" title="Tela Cheia">
           <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
@@ -267,6 +260,7 @@
 
       <img id="cover" class="cover-img" src="" alt="album art">
       
+      <!-- Toca-Discos com fundo cinza -->
       <div class="turntable-container" id="turntable">
         <div style="position: relative; width: 85%; height: 85%; display: flex; align-items: center; justify-content: center;">
           <div style="position: relative; width: 100%; height: 100%; background: linear-gradient(to top right, #18181b, #27272a, #3f3f46); border-radius: 50%; box-shadow: inset 0 2px 8px rgba(0,0,0,0.8), 0 10px 20px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; border: 3px solid #3f3f46;">
@@ -274,12 +268,13 @@
                   <div class="vinyl-sheen" style="position: absolute; inset: 0; border-radius: 50%;"></div>
                   <div style="position: relative; width: 36%; height: 36%; background: linear-gradient(to bottom right, #dc2626, #9f1239); border-radius: 50%; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); display: flex; flex-direction: column; align-items:center; justify-content: center; border: 2px solid rgba(248,113,113,0.5); overflow: hidden;">
                       <div style="position: absolute; inset: 6px; border: 1px solid rgba(254,202,202,0.3); border-radius: 50%;"></div>
-                      <span style="font-size: 8px; font-weight: 700; color: #fff; letter-spacing: 0.1em; text-align: center;">JAZZ24</span>
-                      <span style="font-size: 6px; color: #fecaca; font-weight: 500; margin-top: 2px; text-align: center;">LIVE</span>
+                      <span style="font-size: 8px; font-weight: 700; color: #fff; letter-spacing: 0.1em; text-align: center;">PLAYER</span>
+                      <span style="font-size: 6px; color: #fecaca; font-weight: 500; margin-top: 2px; text-align: center;">HÍBRIDO</span>
                       <div style="width: 12px; height: 12px; background: #09090b; border-radius: 50%; box-shadow: inset 0 2px 4px rgba(0,0,0,0.6); border: 1px solid #3f3f46; margin-top: 4px;"></div>
                   </div>
               </div>
           </div>
+          <!-- Braço (Tonearm) mantido idêntico -->
           <div class="tonearm-assembly" style="position: absolute; top: -5%; right: -5%; width: 75%; height: 100%; pointer-events: none; z-index: 5;">
               <svg style="width: 100%; height: 100%; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.7));" viewBox="0 0 240 340" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <circle cx="215" cy="35" r="24" fill="url(#piv-grad)" stroke="#52525b" stroke-width="2"/>
@@ -311,13 +306,13 @@
         </div>
       </div>
       
-      <div class="live"><span class="dot"></span> LIVE • <span id="liveName">Jazz24</span></div>
+      <div class="live"><span class="dot"></span> <span id="liveBadgeText">LIVE</span> • <span id="liveName">Jazz24</span></div>
     </div>
 
     <!-- LADO DIREITO (CONTEÚDO) -->
     <div class="card-content">
       <div class="meta">
-        <div class="station" id="stationDesc">Welcome to Jazz24 from Seattle and Tacoma, Washington.</div>
+        <div class="station" id="stationDesc">Welcome to Jazz24 from Seattle and Tacoma.</div>
         <div class="title" id="tTitle">Jazz24</div>
         <div class="artist" id="tArtist">Seattle • jazz24.org</div>
       </div>
@@ -346,7 +341,7 @@
         
         <div class="info-group">
           <div class="badge-line">
-            <span class="badge">HTTPS • MP3</span>
+            <span class="badge" id="formatBadge">HTTPS • STREAM</span>
             <span class="badge" id="artBadge">Arte: iTunes Search</span>
           </div>
           <div class="status" id="status"></div>
@@ -369,9 +364,15 @@ const STATIONS = [
 
 const DEFAULT_BG = "https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=1400&auto=format&fit=crop";
 
+// Variáveis de Controle
 let currentStationIndex = 0;
 let currentStation = STATIONS[currentStationIndex];
+let isLocalMode = false;
+let localPlaylist = [];
+let localIndex = 0;
+let isPlaying = false;
 
+// Elementos da DOM
 const audio = document.getElementById('audio');
 const playBtn = document.getElementById('playBtn');
 const vol = document.getElementById('vol');
@@ -383,8 +384,10 @@ const tTitle = document.getElementById('tTitle');
 const tArtist = document.getElementById('tArtist');
 const statusEl = document.getElementById('status');
 const artBadge = document.getElementById('artBadge');
+const formatBadge = document.getElementById('formatBadge');
 const stationDesc = document.getElementById('stationDesc');
 const liveName = document.getElementById('liveName');
+const liveBadgeText = document.getElementById('liveBadgeText');
 const canvas = document.getElementById('viz');
 const ctx = canvas.getContext('2d');
 const appContainer = document.getElementById('appContainer');
@@ -392,11 +395,11 @@ const fsBtn = document.getElementById('fsBtn');
 const themeBtn = document.getElementById('themeBtn');
 const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
+const folderInput = document.getElementById('folderInput');
 
-let isPlaying = false;
 let analyser, dataArray, audioCtx, sourceNode;
-let lastQuery = "";
-let lastStreamTitle = "";
+let lastQuery = "", lastStreamTitle = "";
+let metaAbort = null, metaInterval = null;
 
 /* --- CONTROLE DE TEMA (CLARO/ESCURO) --- */
 let isLightMode = false;
@@ -408,18 +411,16 @@ themeBtn.addEventListener('click', () => {
 /* --- SETAR ARTE --- */
 function setArtworkState(hasCover, artUrl = null) {
   if (hasCover && artUrl) {
-    cover.src = artUrl;
-    bgImg.src = artUrl;
+    cover.src = artUrl; bgImg.src = artUrl;
     artWrap.classList.add('has-cover');
   } else {
-    cover.src = "";
-    bgImg.src = DEFAULT_BG;
+    cover.src = ""; bgImg.src = DEFAULT_BG;
     artWrap.classList.remove('has-cover');
   }
 }
 
 /* --- TELA CHEIA --- */
-function isFullScreen() { return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement); }
+function isFullScreen() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
 function requestFullScreen() {
   const el = appContainer;
   if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
@@ -447,76 +448,136 @@ function setupAnalyser(){
   if(audioCtx) return;
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 128;
+    analyser = audioCtx.createAnalyser(); analyser.fftSize = 128;
     dataArray = new Uint8Array(analyser.frequencyBinCount);
     sourceNode = audioCtx.createMediaElementSource(audio);
-    sourceNode.connect(analyser);
-    analyser.connect(audioCtx.destination);
+    sourceNode.connect(analyser); analyser.connect(audioCtx.destination);
   } catch(e) {}
 }
 
 function draw(){
   requestAnimationFrame(draw);
   if (!canvas.offsetWidth) return;
-  
-  const w = canvas.width = canvas.offsetWidth * 2;
-  const h = canvas.height = canvas.offsetHeight * 2;
-  
+  const w = canvas.width = canvas.offsetWidth * 2, h = canvas.height = canvas.offsetHeight * 2;
   ctx.clearRect(0,0,w,h);
   if(!analyser || !dataArray) return;
   analyser.getByteFrequencyData(dataArray);
   
-  const barW = w / dataArray.length * 1.9;
-  let x = 0;
-  
-  // Lê o tema atual para pintar as barras da cor certa
-  const r = isLightMode ? 0 : 255;
-  const g = isLightMode ? 0 : 255;
-  const b = isLightMode ? 0 : 255;
+  const barW = w / dataArray.length * 1.9; let x = 0;
+  const r = isLightMode ? 0 : 255, g = isLightMode ? 0 : 255, b = isLightMode ? 0 : 255;
 
   for(let i=0;i<dataArray.length;i++){
-    const v = dataArray[i]/255;
-    const bh = v * h * 0.92;
+    const v = dataArray[i]/255; const bh = v * h * 0.92;
     ctx.fillStyle = `rgba(${r},${g},${b},${0.18 + v*0.82})`;
-    ctx.fillRect(x, h - bh, barW*0.78, bh);
-    x += barW;
+    ctx.fillRect(x, h - bh, barW*0.78, bh); x += barW;
   }
 }
 draw();
 
-/* --- METADADOS E BUSCA DE ARTE --- */
+/* --- LÓGICA DE ARQUIVOS LOCAIS --- */
+folderInput.addEventListener('change', (e) => {
+  const files = Array.from(e.target.files).filter(f => 
+    f.type.includes('audio') || f.name.match(/\.(mp3|aac|m4a|wav)$/i)
+  );
+  if(files.length > 0) {
+    isLocalMode = true;
+    localPlaylist = files;
+    localIndex = 0;
+    if(isPlaying) { audio.pause(); stopMetadata(); }
+    playLocalTrack();
+  } else {
+    alert("Nenhum ficheiro de áudio suportado encontrado na pasta.");
+  }
+});
+
+function playLocalTrack() {
+  const file = localPlaylist[localIndex];
+  const url = URL.createObjectURL(file);
+  audio.src = url;
+  
+  // Interface Inicial
+  tTitle.textContent = file.name.replace(/\.[^/.]+$/, ""); // Remove a extensão
+  tArtist.textContent = "A carregar metadados...";
+  stationDesc.textContent = `Faixa Local: ${localIndex + 1} de ${localPlaylist.length}`;
+  liveName.textContent = "LOCAL";
+  liveBadgeText.textContent = "MP3";
+  formatBadge.textContent = "ARQUIVO LOCAL";
+  artBadge.textContent = "A ler ID3...";
+  statusEl.textContent = "";
+  setArtworkState(false);
+  
+  // Tocar
+  setupAnalyser();
+  if(audioCtx && audioCtx.state==='suspended') audioCtx.resume();
+  audio.play().then(() => {
+    isPlaying = true;
+    artWrap.classList.add('playing');
+    playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+    playBtn.classList.remove('is-paused');
+  }).catch(e => console.error("Erro a reproduzir ficheiro local:", e));
+
+  // Ler Metadados (jsmediatags)
+  if(window.jsmediatags) {
+    window.jsmediatags.read(file, {
+      onSuccess: function(tag) {
+        if(tag.tags.title) tTitle.textContent = tag.tags.title;
+        if(tag.tags.artist) tArtist.textContent = tag.tags.artist;
+        if(tag.tags.album) stationDesc.textContent = tag.tags.album;
+        
+        // Processar a Imagem (Capa)
+        if(tag.tags.picture) {
+          const data = tag.tags.picture.data;
+          const format = tag.tags.picture.format;
+          let base64String = "";
+          for (let i = 0; i < data.length; i++) {
+            base64String += String.fromCharCode(data[i]);
+          }
+          const imgUrl = `data:${format};base64,${window.btoa(base64String)}`;
+          setArtworkState(true, imgUrl);
+          artBadge.textContent = "Capa: Metadados ID3";
+        } else {
+          artBadge.textContent = "Sem Capa Interna";
+        }
+      },
+      onError: function(error) { 
+        console.warn("Erro ao ler ID3:", error); 
+        artBadge.textContent = "Sem Metadados";
+        tArtist.textContent = "Artista Desconhecido";
+      }
+    });
+  }
+}
+
+// Avançar de faixa automaticamente quando a música terminar (só no Modo Local)
+audio.addEventListener('ended', () => {
+  if (isLocalMode) changeStation(1);
+});
+
+/* --- BUSCA DE ARTE E METADADOS DA RÁDIO (Mantido) --- */
 function fetchArtwork(artist, title){
   return new Promise((resolve) => {
     const q = `${artist} ${title}`.trim();
     if(!q || q === lastQuery){ resolve(null); return; }
-    lastQuery = q;
-    artBadge.textContent = `Buscando arte...`;
+    lastQuery = q; artBadge.textContent = `Buscando arte...`;
 
-    const callbackName = 'itunesCallback_' + Date.now();
-    const timeout = setTimeout(() => { cleanup(); resolve(null); }, 8000);
+    const cb = 'itunesCb_' + Date.now();
+    const timeout = setTimeout(() => { try{delete window[cb];}catch(e){} resolve(null); }, 8000);
 
-    function cleanup(){
-      clearTimeout(timeout);
-      try { delete window[callbackName]; } catch(e){}
-    }
-
-    window[callbackName] = (data) => {
+    window[cb] = (data) => {
       let art = null;
       if(data && data.results && data.results[0]){
         art = data.results[0].artworkUrl100.replace('100x100bb','600x600bb');
         setArtworkState(true, art);
         artBadge.textContent = `Arte: ${data.results[0].artistName}`;
       } else {
-        setArtworkState(false);
-        artBadge.textContent = 'Arte: fallback';
+        setArtworkState(false); artBadge.textContent = 'Arte: fallback';
       }
-      cleanup();
+      clearTimeout(timeout); try{delete window[cb];}catch(e){}
       resolve(art);
     };
 
     const script = document.createElement('script');
-    script.src = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=1&callback=${callbackName}`;
+    script.src = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=1&callback=${cb}`;
     document.body.appendChild(script);
   });
 }
@@ -527,11 +588,8 @@ function parseStreamTitle(s){
   return parts.length>=2 ? {artist: parts[0].trim(), title: parts.slice(1).join(' - ').trim()} : {artist: currentStation.artist, title:s.trim()};
 }
 
-let metaAbort = null;
-let metaInterval = null;
-
 async function startMetadata(){
-  if (metaInterval) return;
+  if (metaInterval || isLocalMode) return; // Não lê metadados ICY no modo local
   const readIcy = async () => {
     if (metaAbort) metaAbort.abort();
     metaAbort = new AbortController();
@@ -566,8 +624,7 @@ async function startMetadata(){
       }
     } catch (e) {}
   };
-  readIcy();
-  metaInterval = setInterval(readIcy, 20000);
+  readIcy(); metaInterval = setInterval(readIcy, 20000);
 }
 
 function stopMetadata(){
@@ -575,32 +632,39 @@ function stopMetadata(){
   if (metaAbort) { metaAbort.abort(); metaAbort = null; }
 }
 
-function updateUIForStation() {
+function updateUIForWebStation() {
   tTitle.textContent = currentStation.name;
   tArtist.textContent = currentStation.artist;
   stationDesc.textContent = currentStation.desc;
   liveName.textContent = currentStation.name;
+  liveBadgeText.textContent = "LIVE";
+  formatBadge.textContent = "HTTPS • STREAM";
   setArtworkState(false);
   lastStreamTitle = ""; lastQuery = "";
   artBadge.textContent = 'Arte: iTunes Search';
 }
 
-/* --- PLAY / PAUSE E TROCA DE RÁDIO --- */
+/* --- PLAY / PAUSE E NAVEGAÇÃO --- */
 async function togglePlay(){
   if(!isPlaying){
     try{
       setupAnalyser();
       if(audioCtx && audioCtx.state==='suspended') await audioCtx.resume();
-      audio.src = currentStation.url;
+      
+      // Se não houver src carregado e estivermos no modo Rádio, atribui o src da rádio
+      if (!isLocalMode && !audio.src.includes('blob:')) {
+         audio.src = currentStation.url;
+      }
+      
       await audio.play();
       isPlaying = true;
       artWrap.classList.add('playing');
       playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
       playBtn.classList.remove('is-paused');
-      startMetadata();
+      if(!isLocalMode) startMetadata();
     }catch(err){ console.error(err); }
   }else{
-    audio.pause(); stopMetadata();
+    audio.pause(); if(!isLocalMode) stopMetadata();
     isPlaying = false;
     artWrap.classList.remove('playing');
     playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14l11-7-11-7z"/></svg>';
@@ -609,22 +673,33 @@ async function togglePlay(){
 }
 
 function changeStation(direction) {
-  currentStationIndex = (currentStationIndex + direction + STATIONS.length) % STATIONS.length;
-  currentStation = STATIONS[currentStationIndex];
   const wasPlaying = isPlaying;
+  
   if (wasPlaying) {
     audio.pause(); stopMetadata(); isPlaying = false;
     artWrap.classList.remove('playing');
   }
-  updateUIForStation();
-  if (wasPlaying) togglePlay();
+
+  if (isLocalMode) {
+    // Avança a música local
+    localIndex = (localIndex + direction + localPlaylist.length) % localPlaylist.length;
+    playLocalTrack();
+  } else {
+    // Avança a rádio
+    currentStationIndex = (currentStationIndex + direction + STATIONS.length) % STATIONS.length;
+    currentStation = STATIONS[currentStationIndex];
+    audio.src = ''; // Limpa o src antigo para forçar o reload
+    updateUIForWebStation();
+    if (wasPlaying) togglePlay();
+  }
 }
 
 playBtn.addEventListener('click', togglePlay);
 prevBtn.addEventListener('click', () => changeStation(-1));
 nextBtn.addEventListener('click', () => changeStation(1));
 
-updateUIForStation();
+// Inicia com a UI da Rádio (por padrão)
+updateUIForWebStation();
 </script>
 </body>
 </html>
