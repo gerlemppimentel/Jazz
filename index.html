@@ -87,7 +87,7 @@
     display: flex; flex-direction: column; gap: 12px; flex: 1; justify-content: center;
   }
 
-  /* --- ARTE E TOCA-DISCOS (OTIMIZADO) --- */
+  /* --- ARTE E TOCA-DISCOS --- */
   .art {
     position: relative; width: 100%; max-width: 500px; aspect-ratio: 1; 
     border-radius: 18px; overflow: hidden; background: #151515; 
@@ -140,7 +140,7 @@
   .btn-top-right { top: 10px; right: 10px; }
   .btn-bottom-left { bottom: 10px; left: 10px; }
 
-  /* --- NOVO: TOGGLE ONLINE / LOCAL --- */
+  /* --- TOGGLE ONLINE / LOCAL --- */
   .mode-toggle {
     position: absolute; top: 10px; left: 10px; z-index: 10;
     background: rgba(0,0,0,0.45); backdrop-filter: blur(10px);
@@ -153,7 +153,6 @@
     width: 8px; height: 8px; border-radius: 50%; margin: 0 6px;
     background: #ff2a2a; box-shadow: 0 0 10px #ff2a2a; transition: 0.3s;
   }
-  /* O Ponto fica verde dinamicamente quando a classe .playing é acionada na .art */
   .art.playing .mode-dot { background: #22c55e; box-shadow: 0 0 10px #22c55e; animation: pulse 1.5s infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.55; transform: scale(0.88); } }
 
@@ -264,8 +263,8 @@
         <button class="mode-btn" id="btnLocal">LOCAL</button>
       </div>
 
-      <!-- Input de ficheiros agora aceita múltiplos arquivos sem forçar pasta (Foco no Android) -->
-      <input type="file" id="folderInput" multiple accept="audio/*" style="display:none">
+      <!-- Input de ficheiros com os 3 atributos para ser Universal (PC e Android) -->
+      <input type="file" id="folderInput" webkitdirectory directory multiple accept="audio/*" style="display:none">
 
       <!-- Botão Tela Cheia (Canto Superior Direito) -->
       <button class="action-btn btn-top-right" id="fsBtn" aria-label="Tela Cheia" title="Tela Cheia">
@@ -440,10 +439,9 @@ themeBtn.addEventListener('click', () => {
 
 /* --- LÓGICA DO TOGGLE ONLINE / LOCAL --- */
 btnOnline.addEventListener('click', () => {
-  if (!isLocalMode) return; // Se já estiver online, não faz nada
+  if (!isLocalMode) return; 
   isLocalMode = false;
   
-  // Atualiza as cores dos botões
   btnOnline.classList.add('active');
   btnLocal.classList.remove('active');
   
@@ -453,7 +451,6 @@ btnOnline.addEventListener('click', () => {
     artWrap.classList.remove('playing');
   }
 
-  // Volta para a Rádio Jazz24 (Estação 0)
   currentStationIndex = 0;
   currentStation = STATIONS[0];
   audio.src = ''; 
@@ -463,11 +460,10 @@ btnOnline.addEventListener('click', () => {
 });
 
 btnLocal.addEventListener('click', () => {
-  // O utilizador clica em "LOCAL" e o JavaScript simula um clique no input de ficheiros oculto
   folderInput.click();
 });
 
-/* --- LÓGICA DE ARQUIVOS LOCAIS (Otimizado para Android) --- */
+/* --- LÓGICA DE ARQUIVOS LOCAIS (Universal: PC e Android) --- */
 folderInput.addEventListener('change', (e) => {
   const files = Array.from(e.target.files).filter(f => 
     f.type.includes('audio') || f.name.match(/\.(mp3|aac|m4a|wav)$/i)
@@ -475,7 +471,6 @@ folderInput.addEventListener('change', (e) => {
   if(files.length > 0) {
     isLocalMode = true;
     
-    // Atualiza o visual do Toggle apenas se tiver ficheiros válidos selecionados
     btnLocal.classList.add('active');
     btnOnline.classList.remove('active');
     
@@ -485,7 +480,7 @@ folderInput.addEventListener('change', (e) => {
     if(isPlaying) { audio.pause(); stopMetadata(); }
     playLocalTrack();
   } else {
-    alert("Nenhum ficheiro de áudio suportado selecionado.");
+    alert("Nenhum ficheiro de áudio suportado selecionado. Lembre-se: no telemóvel, mantenha pressionado para selecionar vários.");
   }
 });
 
