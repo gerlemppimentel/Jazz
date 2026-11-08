@@ -23,7 +23,6 @@
     --btn-color: #000000;
     --badge-bg: rgba(255, 255, 255, 0.1);
     --focus-ring: #ffffff;
-    /* Fundo atrás do disco (Modo Escuro) */
     --turntable-bg: radial-gradient(circle at center, #6b7280 0%, #374151 100%);
   }
 
@@ -38,7 +37,6 @@
     --btn-color: #ffffff;
     --badge-bg: rgba(0, 0, 0, 0.1);
     --focus-ring: #111111;
-    /* Fundo atrás do disco (Modo Claro) */
     --turntable-bg: radial-gradient(circle at center, #d1d5db 0%, #9ca3af 100%);
   }
 
@@ -89,32 +87,38 @@
     display: flex; flex-direction: column; gap: 12px; flex: 1; justify-content: center;
   }
 
-  /* --- BOTÕES DE ACÇÃO (PASTA, TEMA, TELA CHEIA) --- */
-  .top-actions {
-    position: absolute; top: 12px; right: 12px; display: flex; gap: 8px; z-index: 10;
+  /* --- ARTE E TOCA-DISCOS (OTIMIZADO PARA VIA BROWSER) --- */
+  .art {
+    position: relative; 
+    width: 100%; 
+    max-width: 500px;
+    aspect-ratio: 1; 
+    border-radius: 18px; 
+    overflow: hidden;
+    background: #151515; 
+    flex-shrink: 0; 
+    margin: 0 auto; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    /* Correções de Segurança para Via Browser / WebView */
+    min-height: 250px; 
+    display: flex;
   }
-  .action-btn {
-    background: rgba(0,0,0,0.4); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.16);
-    color: #fff; border-radius: 50%; width: 40px; height: 40px;
-    display: grid; place-items: center; cursor: pointer; transition: 0.2s;
+  
+  /* Fallback clássico caso o aspect-ratio falhe no motor do Via Browser */
+  @supports not (aspect-ratio: 1) {
+    .art::before {
+      content: ""; display: block; padding-bottom: 100%;
+    }
   }
-  .light-mode .action-btn {
-    background: rgba(255,255,255,0.4); color: #000; border-color: rgba(0,0,0,0.15);
-  }
-  .action-btn:hover { transform: scale(1.05); }
-  .action-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-  /* --- ARTE E TOCA-DISCOS --- */
-  .art{
-    position:relative; width: 100%; aspect-ratio: 1; border-radius:18px; overflow:hidden;
-    background:#151515; flex-shrink: 0; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  .art img.cover-img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: transform .8s cubic-bezier(.2,.8,.2,1), opacity 0.5s ease;
+    /* Substituição do inset: 0 por segurança */
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+    z-index: 2;
   }
-  .art img.cover-img{
-    width:100%;height:100%;object-fit:cover;display:block;
-    transition:transform .8s cubic-bezier(.2,.8,.2,1), opacity 0.5s ease;
-    position:absolute; inset:0; z-index:2;
-  }
-  .art.playing img.cover-img{transform:scale(1.05)}
+  .art.playing img.cover-img { transform: scale(1.05); }
   .art.has-cover img.cover-img { opacity: 1; pointer-events: auto; }
   .art:not(.has-cover) img.cover-img { opacity: 0; pointer-events: none; }
   .art.has-cover .turntable-container { display: none; }
@@ -122,9 +126,10 @@
 
   /* Toca-discos interno com fundo CINZA */
   .turntable-container {
-    position:absolute; inset:0; z-index:1;
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    width: 100%; height: 100%; z-index: 1;
     background: var(--turntable-bg);
-    align-items:center; justify-content:center;
+    align-items: center; justify-content: center;
     transition: background 0.4s;
   }
   
@@ -138,9 +143,25 @@
   @keyframes stylus-vibrate { 0% { transform: translate(0, 0); } 50% { transform: translate(0.3px, -0.3px); } 100% { transform: translate(0, 0); } }
   .art.playing .playing-stylus { animation: stylus-vibrate 0.12s steps(2, start) infinite; }
 
-  /* --- LED LIVE/LOCAL --- */
+  /* --- BOTÕES SOBRE A ARTE (REPOSICIONADOS) --- */
+  .action-btn {
+    background: rgba(0,0,0,0.4); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.16);
+    color: #fff; border-radius: 50%; width: 40px; height: 40px;
+    display: grid; place-items: center; cursor: pointer; transition: 0.2s;
+    z-index: 10; position: absolute; /* Essencial para ficarem por cima do toca-discos */
+  }
+  .light-mode .action-btn { background: rgba(255,255,255,0.4); color: #000; border-color: rgba(0,0,0,0.15); }
+  .action-btn:hover { transform: scale(1.05); }
+  .action-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Posições individuais */
+  .btn-top-right { top: 10px; right: 10px; }
+  .btn-bottom-left { bottom: 10px; left: 10px; }
+  .btn-bottom-right { bottom: 10px; right: 10px; }
+
+  /* --- LED LIVE/LOCAL (LIMPO) --- */
   .live{
-    position:absolute; top:8px; left:8px; background:rgba(0,0,0,0.45); backdrop-filter:blur(10px);
+    position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.45); backdrop-filter:blur(10px);
     padding:6px 12px; border-radius:999px; font-size:11px; letter-spacing:.14em; font-weight:800; color:#fff;
     display:flex; gap:6px; align-items:center; border:1px solid rgba(255,255,255,0.16); z-index:10;
   }
@@ -185,9 +206,7 @@
   .badge{ font-size:10px; background:var(--badge-bg); padding:5px 8px; border-radius:999px; }
   .status{ font-size:11px; color:var(--text-muted); min-height:16px; }
 
-  /* =========================================
-     CORREÇÃO: MOBILE PAISAGEM (SMARTPHONES DEITADOS)
-     ========================================= */
+  /* === CORREÇÃO: MOBILE PAISAGEM === */
   @media (max-height: 600px) and (orientation: landscape) {
     .app { padding: 8px; }
     .card {
@@ -207,7 +226,6 @@
     .info-group { align-items: flex-start; }
     .badge-line { justify-content: flex-start; }
     
-    .top-actions { top: 6px; right: 6px; }
     .action-btn { width: 32px; height: 32px; }
     .action-btn svg { width: 16px; height: 16px; }
   }
@@ -244,20 +262,21 @@
     <!-- LADO ESQUERDO (ARTE) -->
     <div class="art" id="artWrap">
       
-      <!-- Ações: Pasta, Tema e Tela Cheia -->
-      <div class="top-actions">
-        <!-- O input hidden é acionado ao clicar na label -->
-        <label class="action-btn" title="Abrir Pasta Local">
-          <input type="file" id="folderInput" webkitdirectory directory multiple accept="audio/mp3, audio/mpeg, audio/aac, audio/mp4, .m4a" style="display:none">
-          <svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 14H4V8h16v12z"/></svg>
-        </label>
-        
-        <button class="action-btn" id="themeBtn" aria-label="Alternar Tema" title="Mudar Tema">🌓</button>
-        <button class="action-btn" id="fsBtn" aria-label="Tela Cheia" title="Tela Cheia">
-          <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-        </button>
-      </div>
+      <!-- Botão Tela Cheia (Canto Superior Direito) -->
+      <button class="action-btn btn-top-right" id="fsBtn" aria-label="Tela Cheia" title="Tela Cheia">
+        <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+      </button>
 
+      <!-- Botão Tema (Canto Inferior Esquerdo) -->
+      <button class="action-btn btn-bottom-left" id="themeBtn" aria-label="Alternar Tema" title="Mudar Tema">🌓</button>
+
+      <!-- Botão Arquivos Locais (Canto Inferior Direito) -->
+      <label class="action-btn btn-bottom-right" title="Abrir Pasta Local">
+        <input type="file" id="folderInput" webkitdirectory directory multiple accept="audio/mp3, audio/mpeg, audio/aac, audio/mp4, .m4a" style="display:none">
+        <svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 14H4V8h16v12z"/></svg>
+      </label>
+
+      <!-- Imagem de Capa -->
       <img id="cover" class="cover-img" src="" alt="album art">
       
       <!-- Toca-Discos com fundo cinza -->
@@ -274,7 +293,6 @@
                   </div>
               </div>
           </div>
-          <!-- Braço (Tonearm) mantido idêntico -->
           <div class="tonearm-assembly" style="position: absolute; top: -5%; right: -5%; width: 75%; height: 100%; pointer-events: none; z-index: 5;">
               <svg style="width: 100%; height: 100%; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.7));" viewBox="0 0 240 340" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <circle cx="215" cy="35" r="24" fill="url(#piv-grad)" stroke="#52525b" stroke-width="2"/>
@@ -306,7 +324,8 @@
         </div>
       </div>
       
-      <div class="live"><span class="dot"></span> <span id="liveBadgeText">LIVE</span> • <span id="liveName">Jazz24</span></div>
+      <!-- LED LIVE/LOCAL (LIMPO) -->
+      <div class="live"><span class="dot"></span> <span id="liveBadgeText">LIVE</span></div>
     </div>
 
     <!-- LADO DIREITO (CONTEÚDO) -->
@@ -371,6 +390,7 @@ let isLocalMode = false;
 let localPlaylist = [];
 let localIndex = 0;
 let isPlaying = false;
+let currentLocalUrl = null; // Recolha de lixo para poupar RAM
 
 // Elementos da DOM
 const audio = document.getElementById('audio');
@@ -386,7 +406,6 @@ const statusEl = document.getElementById('status');
 const artBadge = document.getElementById('artBadge');
 const formatBadge = document.getElementById('formatBadge');
 const stationDesc = document.getElementById('stationDesc');
-const liveName = document.getElementById('liveName');
 const liveBadgeText = document.getElementById('liveBadgeText');
 const canvas = document.getElementById('viz');
 const ctx = canvas.getContext('2d');
@@ -492,16 +511,21 @@ folderInput.addEventListener('change', (e) => {
 
 function playLocalTrack() {
   const file = localPlaylist[localIndex];
-  const url = URL.createObjectURL(file);
-  audio.src = url;
+  
+  // Limpeza de Memória (Garbage Collection)
+  if (currentLocalUrl) {
+    URL.revokeObjectURL(currentLocalUrl);
+  }
+
+  currentLocalUrl = URL.createObjectURL(file);
+  audio.src = currentLocalUrl;
   
   // Interface Inicial
-  tTitle.textContent = file.name.replace(/\.[^/.]+$/, ""); // Remove a extensão
-  tArtist.textContent = "A carregar metadados...";
+  tTitle.textContent = file.name.replace(/\.[^/.]+$/, ""); 
+  tArtist.textContent = "A ler metadados...";
   stationDesc.textContent = `Faixa Local: ${localIndex + 1} de ${localPlaylist.length}`;
-  liveName.textContent = "LOCAL";
-  liveBadgeText.textContent = "MP3";
-  formatBadge.textContent = "ARQUIVO LOCAL";
+  liveBadgeText.textContent = "LOCAL";
+  formatBadge.textContent = "LEITURA DE DISCO";
   artBadge.textContent = "A ler ID3...";
   statusEl.textContent = "";
   setArtworkState(false);
@@ -514,7 +538,7 @@ function playLocalTrack() {
     artWrap.classList.add('playing');
     playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
     playBtn.classList.remove('is-paused');
-  }).catch(e => console.error("Erro a reproduzir ficheiro local:", e));
+  }).catch(e => console.error("Erro ao reproduzir ficheiro local:", e));
 
   // Ler Metadados (jsmediatags)
   if(window.jsmediatags) {
@@ -524,14 +548,12 @@ function playLocalTrack() {
         if(tag.tags.artist) tArtist.textContent = tag.tags.artist;
         if(tag.tags.album) stationDesc.textContent = tag.tags.album;
         
-        // Processar a Imagem (Capa)
+        // Capa
         if(tag.tags.picture) {
           const data = tag.tags.picture.data;
           const format = tag.tags.picture.format;
           let base64String = "";
-          for (let i = 0; i < data.length; i++) {
-            base64String += String.fromCharCode(data[i]);
-          }
+          for (let i = 0; i < data.length; i++) { base64String += String.fromCharCode(data[i]); }
           const imgUrl = `data:${format};base64,${window.btoa(base64String)}`;
           setArtworkState(true, imgUrl);
           artBadge.textContent = "Capa: Metadados ID3";
@@ -548,12 +570,12 @@ function playLocalTrack() {
   }
 }
 
-// Avançar de faixa automaticamente quando a música terminar (só no Modo Local)
+// Avançar faixa local automaticamente
 audio.addEventListener('ended', () => {
   if (isLocalMode) changeStation(1);
 });
 
-/* --- BUSCA DE ARTE E METADADOS DA RÁDIO (Mantido) --- */
+/* --- BUSCA DE ARTE E METADADOS DA RÁDIO --- */
 function fetchArtwork(artist, title){
   return new Promise((resolve) => {
     const q = `${artist} ${title}`.trim();
@@ -588,11 +610,16 @@ function parseStreamTitle(s){
   return parts.length>=2 ? {artist: parts[0].trim(), title: parts.slice(1).join(' - ').trim()} : {artist: currentStation.artist, title:s.trim()};
 }
 
+/* --- ATUALIZAÇÃO: TRATAMENTO DE CORS NOS METADADOS --- */
 async function startMetadata(){
-  if (metaInterval || isLocalMode) return; // Não lê metadados ICY no modo local
+  if (metaInterval || isLocalMode) return; 
+  
+  let failedAttempts = 0; // Novo contador de falhas para tratamento de CORS
+
   const readIcy = async () => {
     if (metaAbort) metaAbort.abort();
     metaAbort = new AbortController();
+    
     try {
       const res = await fetch(currentStation.url, { headers: { 'Icy-MetaData': '1' }, signal: metaAbort.signal });
       const metaint = parseInt(res.headers.get('icy-metaint') || '0', 10);
@@ -622,8 +649,20 @@ async function startMetadata(){
           }
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      if (e.name === 'AbortError') return; // Cancelamento intencional
+      
+      // Bloqueio de CORS capturado de forma silenciosa
+      console.warn(`Leitura de metadados bloqueada (CORS) para: ${currentStation.name}.`);
+      failedAttempts++;
+      
+      if (failedAttempts >= 1) {
+        stopMetadata(); // Pára de tentar ler os metadados
+        artBadge.textContent = "Sem Metadados (CORS)"; // Avisa discretamente na interface
+      }
+    }
   };
+  
   readIcy(); metaInterval = setInterval(readIcy, 20000);
 }
 
@@ -636,7 +675,6 @@ function updateUIForWebStation() {
   tTitle.textContent = currentStation.name;
   tArtist.textContent = currentStation.artist;
   stationDesc.textContent = currentStation.desc;
-  liveName.textContent = currentStation.name;
   liveBadgeText.textContent = "LIVE";
   formatBadge.textContent = "HTTPS • STREAM";
   setArtworkState(false);
@@ -650,12 +688,9 @@ async function togglePlay(){
     try{
       setupAnalyser();
       if(audioCtx && audioCtx.state==='suspended') await audioCtx.resume();
-      
-      // Se não houver src carregado e estivermos no modo Rádio, atribui o src da rádio
       if (!isLocalMode && !audio.src.includes('blob:')) {
          audio.src = currentStation.url;
       }
-      
       await audio.play();
       isPlaying = true;
       artWrap.classList.add('playing');
@@ -681,14 +716,12 @@ function changeStation(direction) {
   }
 
   if (isLocalMode) {
-    // Avança a música local
     localIndex = (localIndex + direction + localPlaylist.length) % localPlaylist.length;
     playLocalTrack();
   } else {
-    // Avança a rádio
     currentStationIndex = (currentStationIndex + direction + STATIONS.length) % STATIONS.length;
     currentStation = STATIONS[currentStationIndex];
-    audio.src = ''; // Limpa o src antigo para forçar o reload
+    audio.src = ''; 
     updateUIForWebStation();
     if (wasPlaying) togglePlay();
   }
@@ -698,7 +731,7 @@ playBtn.addEventListener('click', togglePlay);
 prevBtn.addEventListener('click', () => changeStation(-1));
 nextBtn.addEventListener('click', () => changeStation(1));
 
-// Inicia com a UI da Rádio (por padrão)
+// Inicia com a UI da Rádio
 updateUIForWebStation();
 </script>
 </body>
