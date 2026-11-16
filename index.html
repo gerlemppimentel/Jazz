@@ -90,16 +90,26 @@
     justify-content: center; align-items: center; text-align: center;
   }
 
-  /* --- ARTE E TOCA-DISCOS --- */
+  /* --- ARTE E TOCA-DISCOS (SEMPRE QUADRADO PERFEITO) --- */
   .art {
-    position: relative; width: 100%; max-width: 500px; aspect-ratio: 1; 
+    position: relative; width: 100%; max-width: 500px; aspect-ratio: 1 / 1; 
     border-radius: 18px; overflow: hidden; background: #151515; 
     flex-shrink: 0; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    min-height: 250px; display: flex;
+    min-height: 250px; display: flex; align-items: center; justify-content: center;
   }
   
-  @supports not (aspect-ratio: 1) {
+  @supports not (aspect-ratio: 1 / 1) {
     .art::before { content: ""; display: block; padding-bottom: 100%; }
+  }
+
+  /* Wrapper interno para garantir que o prato seja sempre 100% redondo */
+  .turntable-square-box {
+    position: relative;
+    width: 86%;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .art img.cover-img {
@@ -125,11 +135,11 @@
   .vinyl-grooves { background: radial-gradient(circle at center, #18181b 0%, #18181b 18%, transparent 18.5%, transparent 19%, #111 19.5%, #111 28%, transparent 28.5%, transparent 29%, #1c1c1e 29.5%, #1c1c1e 40%, transparent 40.5%, transparent 41%, #111 41.5%, #111 55%, transparent 55.5%, transparent 56%, #1a1a1a 56.5%, #1a1a1a 70%, transparent 70.5%, transparent 71%, #0d0d0d 71.5%, #0d0d0d 88%, #050505 100%); }
   .vinyl-sheen { background: conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,0.03) 0deg, rgba(255,255,255,0.12) 45deg, rgba(255,255,255,0.03) 90deg, rgba(255,255,255,0.03) 180deg, rgba(255,255,255,0.12) 225deg, rgba(255,255,255,0.03) 270deg, rgba(255,255,255,0.03) 360deg); mix-blend-mode: screen; pointer-events: none; }
   
-  /* Braço do Toca-Discos controlado dinamicamente via variável CSS --arm-angle */
+  /* Braço do Toca-Discos controlado dinamicamente via --arm-angle */
   .tonearm-assembly { 
-    transition: transform 0.4s linear; 
-    transform-origin: 215px 35px; 
-    transform: rotate(var(--arm-angle, -22deg)); 
+    transition: transform 0.35s linear; 
+    transform-origin: 89.58% 10.29%; /* Corresponde exatamente ao centro do pivô (215/240 e 35/340) */
+    transform: rotate(var(--arm-angle, -24deg)); 
   }
   @keyframes stylus-vibrate { 0% { transform: translate(0, 0); } 50% { transform: translate(0.3px, -0.3px); } 100% { transform: translate(0, 0); } }
   .art.playing .playing-stylus { animation: stylus-vibrate 0.12s steps(2, start) infinite; }
@@ -222,8 +232,8 @@
       flex-direction: row; padding: 14px; gap: 18px;
       max-width: 820px; max-height: 100vh; align-items: center; border-radius: 18px;
     }
-    .art { width: 42%; max-width: 260px; max-height: 90vh; }
-    .card-content { width: 58%; gap: 8px; overflow-y: auto; align-items: center; text-align: center; }
+    .art { width: auto; height: 86vh; max-height: 260px; aspect-ratio: 1 / 1; }
+    .card-content { flex: 1; gap: 8px; overflow-y: auto; align-items: center; text-align: center; }
     .title { font-size: clamp(20px, 4.5vh, 26px); }
     .artist { font-size: 14px; }
     .controls { gap: 18px; margin: 4px 0; justify-content: center; }
@@ -243,14 +253,19 @@
       flex-direction: row; align-items: center; justify-content: space-between;
       padding: 28px 36px; gap: 36px; border-radius: 28px;
     }
-    /* Toca-discos bem grande ocupando quase toda a altura do card */
+    /* Toca-discos grande com proporção quadrada garantida para o disco NUNCA ficar oval */
     .art {
-      width: 48%; max-width: 560px; height: 100%; max-height: 560px;
-      margin: 0; border-radius: 22px;
+      width: auto;
+      height: 100%;
+      max-height: 560px;
+      aspect-ratio: 1 / 1;
+      margin: 0;
+      border-radius: 22px;
     }
     /* Dados e controles ampliados e centralizados */
     .card-content {
-      width: 52%; height: 100%;
+      flex: 1;
+      height: 100%;
       justify-content: center; align-items: center; text-align: center;
       gap: 20px;
     }
@@ -274,9 +289,9 @@
       width: 92vw; max-width: 1280px; padding: 44px 52px; gap: 60px;
       flex-direction: row; align-items: center;
     }
-    .art { width: 46%; max-width: 540px; margin: 0; }
+    .art { width: 46%; max-width: 540px; aspect-ratio: 1 / 1; margin: 0; }
     .card-content {
-      width: 54%; gap: 22px;
+      flex: 1; gap: 22px;
       justify-content: center; align-items: center; text-align: center;
     }
     .station { font-size: 16px; }
@@ -329,12 +344,14 @@
       
       <!-- Toca-Discos -->
       <div class="turntable-container" id="turntable">
-        <div style="position: relative; width: 85%; height: 85%; display: flex; align-items: center; justify-content: center;">
+        <div class="turntable-square-box" id="turntableBox">
+          <!-- PRATO EXTERNO (100% Redondo) -->
           <div style="position: relative; width: 100%; height: 100%; background: linear-gradient(to top right, #18181b, #27272a, #3f3f46); border-radius: 50%; box-shadow: inset 0 2px 8px rgba(0,0,0,0.8), 0 10px 20px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; border: 3px solid #3f3f46;">
+              <!-- DISCO DE VINIL (92% do prato, 100% Redondo) -->
               <div class="vinyl-spin vinyl-grooves" style="position: relative; width: 92%; height: 92%; border-radius: 50%; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
                   <div class="vinyl-sheen" style="position: absolute; inset: 0; border-radius: 50%;"></div>
                   
-                  <!-- SELO CENTRAL -->
+                  <!-- SELO CENTRAL (36% do vinil) -->
                   <div style="position: relative; width: 36%; height: 36%; background: linear-gradient(to bottom right, #dc2626, #9f1239); border-radius: 50%; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); border: 2px solid rgba(248,113,113,0.5); overflow: hidden;">
                       <div style="position: absolute; inset: 6px; border: 1px solid rgba(254,202,202,0.3); border-radius: 50%;"></div>
                       <div style="position: absolute; top: 18%; width: 100%; text-align: center;">
@@ -348,7 +365,7 @@
               </div>
           </div>
           
-          <!-- BRAÇO DO TOCA-DISCOS (Mostrador de progresso no modo local) -->
+          <!-- BRAÇO DO TOCA-DISCOS (Mostrador de progresso da margem ao centro no modo local) -->
           <div class="tonearm-assembly" id="tonearm" style="position: absolute; top: -5%; right: -5%; width: 75%; height: 100%; pointer-events: none; z-index: 5;">
               <svg style="width: 100%; height: 100%; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.7));" viewBox="0 0 240 340" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <circle cx="215" cy="35" r="24" fill="url(#piv-grad)" stroke="#52525b" stroke-width="2"/>
@@ -437,6 +454,12 @@ const STATIONS = [
 const DEFAULT_BG = "https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=1400&auto=format&fit=crop";
 const STORAGE_KEY = "jazz24_player_state_v2";
 
+// Ângulos Calibrados do Braço do Toca-Discos
+const ARM_ANGLE_REST = -24;   // Fora do disco (descanso)
+const ARM_ANGLE_START = -6;   // Margem externa do vinil (0% da música)
+const ARM_ANGLE_END = 11;     // Borda do selo central (100% da música)
+const ARM_ANGLE_RADIO = 0;    // Posição fixa de leitura no modo Rádio Online
+
 // Variáveis de Controle
 let currentStationIndex = 0;
 let currentStation = STATIONS[currentStationIndex];
@@ -455,6 +478,7 @@ const muteBtn = document.getElementById('muteBtn');
 const cover = document.getElementById('cover');
 const bgImg = document.getElementById('bgImg');
 const artWrap = document.getElementById('artWrap');
+const turntableBox = document.getElementById('turntableBox');
 const tonearm = document.getElementById('tonearm');
 const tTitle = document.getElementById('tTitle');
 const tArtist = document.getElementById('tArtist');
@@ -480,6 +504,27 @@ let analyser, dataArray, audioCtx, sourceNode;
 let lastQuery = "", lastStreamTitle = "";
 let metaAbort = null, metaInterval = null;
 
+/* === GARANTIA DE PROPORÇÃO QUADRADA (ANTI-OVAL PARA ANDROID/TABLET) === */
+function enforceSquareTurntable() {
+  if (!artWrap || !turntableBox) return;
+  const h = artWrap.clientHeight;
+  const w = artWrap.clientWidth;
+  // Se o navegador do tablet esticar a altura sem acompanhar a largura, forçamos a largura igual à altura
+  if (window.innerWidth >= 768 && window.innerHeight > 600 && h > 0 && Math.abs(w - h) > 5) {
+    artWrap.style.width = `${h}px`;
+  } else if (window.innerWidth < 768) {
+    artWrap.style.width = '';
+  }
+  const minSide = Math.min(artWrap.clientWidth, artWrap.clientHeight);
+  if (minSide > 0) {
+    const boxSize = Math.floor(minSide * 0.86);
+    turntableBox.style.width = `${boxSize}px`;
+    turntableBox.style.height = `${boxSize}px`;
+  }
+}
+window.addEventListener('resize', enforceSquareTurntable);
+window.addEventListener('orientationchange', () => setTimeout(enforceSquareTurntable, 200));
+
 /* === 1. GERENCIAMENTO DE ESTADO (LOCALSTORAGE) === */
 function savePlayerState() {
   const state = {
@@ -502,19 +547,16 @@ function loadPlayerState() {
     }
     const state = JSON.parse(raw);
 
-    // Restaura Volume
     if (state.volume !== undefined) {
       vol.value = state.volume;
       audio.volume = parseFloat(state.volume);
     }
 
-    // Restaura Tema
     if (state.isLightMode) {
       isLightMode = true;
       document.body.classList.add('light-mode');
     }
 
-    // Restaura Estação ou Último Arquivo
     if (state.mode === 'local' && state.lastFileName) {
       isLocalMode = true;
       localIndex = state.localIndex || 0;
@@ -542,7 +584,7 @@ function loadPlayerState() {
   }
 }
 
-/* === 2. MOVIMENTO DO BRAÇO DO TOCA-DISCOS (MOSTRADOR DE PROGRESSO) === */
+/* === 2. MOVIMENTO DO BRAÇO DO TOCA-DISCOS (DA MARGEM AO CENTRO) === */
 function updateTonearmAngle(angleDeg) {
   tonearm.style.setProperty('--arm-angle', `${angleDeg}deg`);
 }
@@ -558,18 +600,14 @@ audio.addEventListener('timeupdate', () => {
   if (!isPlaying) return;
 
   if (isLocalMode && audio.duration > 0) {
-    // Calcula o progresso de 0.0 a 1.0
+    // Progresso de 0.0 (início na margem) até 1.0 (fim perto do centro)
     const progress = Math.min(Math.max(audio.currentTime / audio.duration, 0), 1);
-    // Ângulo inicial na borda do vinil (-2deg) até o final da faixa perto do selo (16deg)
-    const startAngle = -2;
-    const endAngle = 16;
-    const currentAngle = startAngle + (progress * (endAngle - startAngle));
+    const currentAngle = ARM_ANGLE_START + (progress * (ARM_ANGLE_END - ARM_ANGLE_START));
     
     updateTonearmAngle(currentAngle.toFixed(2));
     statusEl.textContent = `Progresso no Disco: ${formatTime(audio.currentTime)} / ${formatTime(audio.duration)} (${Math.round(progress * 100)}%)`;
   } else if (!isLocalMode) {
-    // Modo Rádio Online: agulha fixa na posição de leitura
-    updateTonearmAngle(0);
+    updateTonearmAngle(ARM_ANGLE_RADIO);
   }
 });
 
@@ -586,6 +624,7 @@ function enterFullScreen() {
       appContainer.webkitRequestFullscreen();
     }
   }
+  setTimeout(enforceSquareTurntable, 150);
 }
 
 function toggleFullScreen() {
@@ -595,6 +634,7 @@ function toggleFullScreen() {
   } else {
     enterFullScreen();
   }
+  setTimeout(enforceSquareTurntable, 150);
 }
 
 fsBtn.addEventListener('click', (e) => { 
@@ -602,7 +642,6 @@ fsBtn.addEventListener('click', (e) => {
   toggleFullScreen(); 
 });
 
-// Botão Sair (Canto Superior Direito)
 exitBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   savePlayerState();
@@ -612,7 +651,7 @@ exitBtn.addEventListener('click', (e) => {
     stopMetadata();
     isPlaying = false;
     artWrap.classList.remove('playing');
-    updateTonearmAngle(-22);
+    updateTonearmAngle(ARM_ANGLE_REST);
     playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14l11-7-11-7z"/></svg>';
     playBtn.classList.add('is-paused');
   }
@@ -623,7 +662,6 @@ exitBtn.addEventListener('click', (e) => {
   }
 
   statusEl.textContent = "Sessão encerrada com segurança.";
-  // Tenta fechar a janela/aba se o navegador permitir
   setTimeout(() => {
     window.close();
   }, 300);
@@ -649,7 +687,7 @@ btnOnline.addEventListener('click', () => {
   if (wasPlaying) {
     audio.pause(); stopMetadata(); isPlaying = false;
     artWrap.classList.remove('playing');
-    updateTonearmAngle(-22);
+    updateTonearmAngle(ARM_ANGLE_REST);
   }
 
   audio.src = ''; 
@@ -674,7 +712,6 @@ folderInput.addEventListener('change', (e) => {
     btnOnline.classList.remove('active');
     
     localPlaylist = files;
-    // Se havia um arquivo salvo anteriormente na mesma pasta, tenta retomar dele
     const savedIdx = localPlaylist.findIndex(f => f.name === lastSavedFileName);
     localIndex = savedIdx !== -1 ? savedIdx : 0;
     
@@ -694,6 +731,7 @@ function setArtworkState(hasCover, artUrl = null) {
     cover.src = ""; bgImg.src = DEFAULT_BG;
     artWrap.classList.remove('has-cover');
   }
+  enforceSquareTurntable();
 }
 
 /* === VOLUME === */
@@ -750,13 +788,12 @@ function playLocalTrack() {
   stationDesc.textContent = `Faixa Local: ${localIndex + 1} de ${localPlaylist.length}`;
   formatBadge.textContent = "LEITURA DE DISCO";
   artBadge.textContent = "Lendo ID3...";
-  statusEl.textContent = "Iniciando leitura do disco...";
+  statusEl.textContent = "Agulha posicionada na margem do disco...";
   
-  // Força a exibição do toca-discos para mostrar o braço funcionando como progresso
+  // Mantém o toca-discos visível e posiciona a agulha exatamente na borda externa (-6deg)
   setArtworkState(false);
-  updateTonearmAngle(-2);
+  updateTonearmAngle(ARM_ANGLE_START);
   
-  // Garante tela cheia ao dar play
   enterFullScreen();
 
   setupAnalyser();
@@ -784,7 +821,12 @@ function playLocalTrack() {
   }
 }
 
-audio.addEventListener('ended', () => { if (isLocalMode) changeStation(1); });
+audio.addEventListener('ended', () => { 
+  if (isLocalMode) {
+    updateTonearmAngle(ARM_ANGLE_REST);
+    changeStation(1); 
+  }
+});
 
 /* === FUNÇÕES DA WEB RÁDIO === */
 function fetchArtwork(artist, title){
@@ -883,7 +925,6 @@ function updateUIForWebStation() {
 
 /* === PLAY / PAUSE E NAVEGAÇÃO GERAL === */
 async function togglePlay(){
-  // Se estiver no modo local restaurado do localStorage mas sem arquivos carregados na sessão atual
   if (isLocalMode && localPlaylist.length === 0) {
     folderInput.click();
     return;
@@ -891,7 +932,6 @@ async function togglePlay(){
 
   if(!isPlaying){
     try{
-      // Maximiza o aplicativo toda vez que der Play
       enterFullScreen();
 
       setupAnalyser();
@@ -902,7 +942,17 @@ async function togglePlay(){
       await audio.play();
       isPlaying = true;
       artWrap.classList.add('playing');
-      if (!isLocalMode) updateTonearmAngle(0);
+      
+      if (!isLocalMode) {
+        updateTonearmAngle(ARM_ANGLE_RADIO);
+      } else if (audio.duration > 0) {
+        // Se retomou de um pause no modo local, posiciona na fração atual
+        const progress = Math.min(Math.max(audio.currentTime / audio.duration, 0), 1);
+        updateTonearmAngle((ARM_ANGLE_START + progress * (ARM_ANGLE_END - ARM_ANGLE_START)).toFixed(2));
+      } else {
+        updateTonearmAngle(ARM_ANGLE_START);
+      }
+
       playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
       playBtn.classList.remove('is-paused');
       savePlayerState();
@@ -912,7 +962,8 @@ async function togglePlay(){
     audio.pause(); if(!isLocalMode) stopMetadata();
     isPlaying = false;
     artWrap.classList.remove('playing');
-    if (!isLocalMode) updateTonearmAngle(-22);
+    // Ao pausar, levanta/recolhe o braço para descanso
+    updateTonearmAngle(ARM_ANGLE_REST);
     playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14l11-7-11-7z"/></svg>';
     playBtn.classList.add('is-paused');
   }
@@ -924,7 +975,7 @@ function changeStation(direction) {
   if (wasPlaying) {
     audio.pause(); stopMetadata(); isPlaying = false;
     artWrap.classList.remove('playing');
-    updateTonearmAngle(-22);
+    updateTonearmAngle(ARM_ANGLE_REST);
   }
 
   if (isLocalMode) {
@@ -948,8 +999,9 @@ playBtn.addEventListener('click', togglePlay);
 prevBtn.addEventListener('click', () => changeStation(-1));
 nextBtn.addEventListener('click', () => changeStation(1));
 
-// Inicia a aplicação restaurando a última sessão salva
+// Inicia a aplicação restaurando a última sessão salva e ajustando proporções
 loadPlayerState();
+setTimeout(enforceSquareTurntable, 100);
 </script>
 </body>
 </html>
